@@ -39,6 +39,7 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
     const optionRegex = /^([A-Ga-gก-จ])[.)\-\s:]+(.*)/;
     const answerRegex = /^(Answer|เฉลย|Ans|คำตอบ|เฉลยข้อ)[\s:\-=]+([A-Ga-gก-จ1-7]|\d)/i;
     const explanationRegex = /^(Explanation|คำอธิบาย|เฉลยละเอียด|เหตุผล|คำแปล)[\s:\-=]+(.*)/i;
+    const tagsRegex = /^(Tags|Tag|แท็ก|ป้ายกำกับ)[\s:\-=]+(.*)/i;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -55,7 +56,8 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
           type: 'single-choice',
           options: [],
           correctAnswer: 0,
-          explanation: ''
+          explanation: '',
+          tags: []
         };
         continue;
       }
@@ -107,6 +109,13 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
       const expMatch = line.match(explanationRegex);
       if (expMatch && currentQuestion) {
         currentQuestion.explanation = expMatch[2].trim();
+        continue;
+      }
+
+      // 4.5 Check if it's tags
+      const tagsMatch = line.match(tagsRegex);
+      if (tagsMatch && currentQuestion) {
+        currentQuestion.tags = tagsMatch[2].split(',').map(t => t.trim()).filter(Boolean);
         continue;
       }
 
@@ -275,10 +284,19 @@ D. ตรวจจับไวรัส
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {parsedQuestions.map((q, idx) => (
-                <div key={idx} className="glass-panel" style={{ padding: '15px', background: 'rgba(255, 255, 255, 0.02)' }}>
+                <div key={idx} className="glass-panel" style={{ padding: '15px' }}>
                   <div style={{ fontWeight: '700', color: 'var(--color-primary)', fontSize: '14px', marginBottom: '5px' }}>
                     ข้อที่ {idx + 1}: {q.text}
                   </div>
+                  {q.tags && q.tags.length > 0 && (
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                      {q.tags.map(tag => (
+                        <span key={tag} style={{ fontSize: '10px', background: 'rgba(99, 102, 241, 0.15)', color: '#c7d2fe', padding: '1px 6px', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                          🏷️ {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', paddingLeft: '10px' }}>
                     {q.options.map((opt, oIdx) => (
                       <div 
