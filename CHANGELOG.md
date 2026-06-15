@@ -4,6 +4,16 @@ All notable changes to the **ExamHub** application will be documented in this fi
 
 ---
 
+## [v0.6.0] - 2026-06-15
+### Added
+- **Dynamic Category Stats Dashboard**: Updated the Sidebar Progress Panel to reflect statistics (Total exams, Taken, Average score, Practice time) dynamically according to the selected category.
+- **Category Breakdown Section**: Rendered an interactive list of all categories in the Sidebar showing their respective total exams and average score, with clicking capability to filter the dashboard grid.
+
+### Fixed
+- **Category Breakdown Row Hover Styling**: Added CSS styles in `index.css` for category list rows to render glassmorphism hover and active effects.
+
+---
+
 ## [v0.5.0] - 2026-06-15
 ### Added
 - **Exam Categorization**: Added a `category` property to exams allowing categorization of quizzes (e.g., "Cortex XSOAR", "JavaScript", "Science").
