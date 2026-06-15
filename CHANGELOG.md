@@ -4,6 +4,15 @@ All notable changes to the **ExamHub** application will be documented in this fi
 
 ---
 
+## [v1.0.0] - 2026-06-15
+### Added
+- **Feature #8 — Shuffle / Random Mode**: Added a Ready Screen before starting exams to configure options, and implemented a robust Fisher-Yates array shuffling algorithm that dynamically swaps questions and choice arrays while maintaining accurate correctAnswer mapping for grading.
+- **Feature #9 — Dashboard Analytics เชิงลึก**: Implemented a "Deep Analytics" tab on the main dashboard showing key performance metrics (Pass Rate, Average Time, Pace), a custom SVG Line Chart for score progression, category mastery meters, and automated Weak Areas identification.
+- **Feature #10 — Progressive Web App (PWA)**: Integrated `vite-plugin-pwa` with service worker registration and caching logic to support offline usage and local installation. Designed a custom scalable vector icon `icon.svg` as the application logo.
+- **Feature #11 — PDF Export & Print Styles**: Added a "พิมพ์ข้อสอบ / บันทึก PDF" print button on the results screen and designed print media query CSS rules (`@media print`) to optimize layouts, hide menus/sidebars, and format questions cleanly for paper or PDF generation.
+
+---
+
 ## [v0.9.0] - 2026-06-15
 ### Added
 - **Feature #7 — Error Boundary Component**: Added a React class component `ErrorBoundary` wrapping the main app area to catch runtime errors in production and show a beautiful fallback UI with clean reset options.
