@@ -4,6 +4,13 @@ All notable changes to the **ExamHub** application will be documented in this fi
 
 ---
 
+## [v0.7.0] - 2026-06-15
+### Fixed
+- **Blank Page rendering error**: Fixed a critical crash where the React application rendered a blank screen on load. The error was caused by `exam.title` being undefined for custom or corrupted local exams during the migration check (`exam.title.toLowerCase()`). Resolved by adding safe fallback operators `(exam.title || '').toLowerCase()`.
+- **LocalStorage Data Safety**: Enhanced database safety in both `App.jsx` and `Dashboard.jsx` by filtering out null or undefined exams and safeguarding against division by zero in average score calculations (`totalQuestions > 0` checks).
+
+---
+
 ## [v0.6.0] - 2026-06-15
 ### Added
 - **Dynamic Category Stats Dashboard**: Updated the Sidebar Progress Panel to reflect statistics (Total exams, Taken, Average score, Practice time) dynamically according to the selected category.
