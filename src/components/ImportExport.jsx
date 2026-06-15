@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function ImportExport({ isOpen, onClose, onImport, exams }) {
   const [jsonText, setJsonText] = useState('');
@@ -31,55 +31,66 @@ export default function ImportExport({ isOpen, onClose, onImport, exams }) {
   const handleImport = () => {
     try {
       const parsed = JSON.parse(jsonText);
-      
-      // Basic validation
-      if (!parsed.title) throw new Error("ขาดฟิลด์ 'title' (ชื่อข้อสอบ)");
-      if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
-        throw new Error("ต้องมีฟิลด์ 'questions' ที่เป็นอาเรย์ของคำถามอย่างน้อย 1 ข้อ");
-      }
 
-      parsed.questions.forEach((q, idx) => {
-        if (!q.text) throw new Error(`คำถามข้อที่ ${idx + 1} ไม่มีข้อความคำถาม ('text')`);
-        if (!q.options || !Array.isArray(q.options) || q.options.length < 2) {
-          throw new Error(`คำถามข้อที่ ${idx + 1} ต้องมีตัวเลือกตอบ ('options') อย่างน้อย 2 ตัวเลือก`);
+      const validateAndFormatExam = (examObj, index) => {
+        const prefix = index !== undefined ? `ชุดที่ ${index + 1}: ` : '';
+        if (!examObj.title) throw new Error(`${prefix}ขาดฟิลด์ 'title' (ชื่อข้อสอบ)`);
+        if (!examObj.questions || !Array.isArray(examObj.questions) || examObj.questions.length === 0) {
+          throw new Error(`${prefix}ต้องมีฟิลด์ 'questions' ที่เป็นอาเรย์ของคำถามอย่างน้อย 1 ข้อ`);
         }
-        
-        const isMulti = q.type === 'multi-choice' || Array.isArray(q.correctAnswer);
-        if (isMulti) {
-          if (!Array.isArray(q.correctAnswer) || q.correctAnswer.length === 0) {
-            throw new Error(`คำถามข้อที่ ${idx + 1} แบบเลือกตอบหลายข้อ เฉลย 'correctAnswer' ต้องเป็นอาเรย์ของตัวเลขดัชนีที่ไม่ว่าง`);
+
+        examObj.questions.forEach((q, idx) => {
+          if (!q.text) throw new Error(`${prefix}คำถามข้อที่ ${idx + 1} ไม่มีข้อความคำถาม ('text')`);
+          if (!q.options || !Array.isArray(q.options) || q.options.length < 2) {
+            throw new Error(`${prefix}คำถามข้อที่ ${idx + 1} ต้องมีตัวเลือกตอบ ('options') อย่างน้อย 2 ตัวเลือก`);
           }
-          q.correctAnswer.forEach(ans => {
-            if (typeof ans !== 'number' || ans < 0 || ans >= q.options.length) {
-              throw new Error(`คำถามข้อที่ ${idx + 1} ดัชนีเฉลยในอาเรย์ 'correctAnswer' ต้องเป็นตัวเลขระหว่าง 0 ถึง ${q.options.length - 1}`);
+          
+          const isMulti = q.type === 'multi-choice' || Array.isArray(q.correctAnswer);
+          if (isMulti) {
+            if (!Array.isArray(q.correctAnswer) || q.correctAnswer.length === 0) {
+              throw new Error(`${prefix}คำถามข้อที่ ${idx + 1} แบบเลือกตอบหลายข้อ เฉลย 'correctAnswer' ต้องเป็นอาเรย์ของตัวเลขดัชนีที่ไม่ว่าง`);
             }
-          });
-        } else {
-          if (typeof q.correctAnswer !== 'number' || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
-            throw new Error(`คำถามข้อที่ ${idx + 1} ตัวเลือกคำตอบที่ถูกต้อง ('correctAnswer') ต้องเป็นดัชนีตัวเลข (0, 1, 2...) ที่สอดคล้องกับขนาดตัวเลือก`);
+            q.correctAnswer.forEach(ans => {
+              if (typeof ans !== 'number' || ans < 0 || ans >= q.options.length) {
+                throw new Error(`${prefix}คำถามข้อที่ ${idx + 1} ดัชนีเฉลยในอาเรย์ 'correctAnswer' ต้องเป็นตัวเลขระหว่าง 0 ถึง ${q.options.length - 1}`);
+              }
+            });
+          } else {
+            if (typeof q.correctAnswer !== 'number' || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
+              throw new Error(`${prefix}คำถามข้อที่ ${idx + 1} ตัวเลือกคำตอบที่ถูกต้อง ('correctAnswer') ต้องเป็นดัชนีตัวเลข (0, 1, 2...) ที่สอดคล้องกับขนาดตัวเลือก`);
+            }
           }
-        }
-      });
+        });
 
-      // Format import
-      const newExam = {
-        id: `exam-imported-${Date.now()}`,
-        title: parsed.title,
-        category: parsed.category || 'ทั่วไป',
-        description: parsed.description || 'นำเข้าข้อสอบด้วยไฟล์ข้อความ',
-        timeLimit: parseInt(parsed.timeLimit) || 10,
-        passPercentage: parseInt(parsed.passPercentage) || 60,
-        questions: parsed.questions.map((q, idx) => ({
-          id: `q-imported-${Date.now()}-${idx}`,
-          text: q.text,
-          type: q.type || (Array.isArray(q.correctAnswer) ? 'multi-choice' : 'single-choice'),
-          options: q.options,
-          correctAnswer: q.correctAnswer,
-          explanation: q.explanation || 'ไม่ได้ระบุคำอธิบายคำตอบที่ถูกต้อง'
-        }))
+        return {
+          id: `exam-imported-${Date.now()}-${index !== undefined ? index : 0}`,
+          title: examObj.title,
+          category: examObj.category || 'ทั่วไป',
+          description: examObj.description || 'นำเข้าข้อสอบด้วยไฟล์ข้อความ',
+          timeLimit: parseInt(examObj.timeLimit) || 10,
+          passPercentage: parseInt(examObj.passPercentage) || 60,
+          questions: examObj.questions.map((q, qIdx) => ({
+            id: `q-imported-${Date.now()}-${index !== undefined ? index : 0}-${qIdx}`,
+            text: q.text,
+            type: q.type || (Array.isArray(q.correctAnswer) ? 'multi-choice' : 'single-choice'),
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation || 'ไม่ได้ระบุคำอธิบายคำตอบที่ถูกต้อง'
+          }))
+        };
       };
 
-      onImport(newExam);
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0) {
+          throw new Error("อาเรย์ว่าง ไม่มีชุดข้อสอบให้นำเข้า");
+        }
+        const importedExams = parsed.map((item, idx) => validateAndFormatExam(item, idx));
+        onImport(importedExams);
+      } else {
+        const newExam = validateAndFormatExam(parsed);
+        onImport(newExam);
+      }
+
       setJsonText('');
       setErrorMsg('');
       onClose();
