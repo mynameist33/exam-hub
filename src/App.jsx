@@ -22,13 +22,29 @@ function App() {
 
     if (storedExams) {
       const parsedExams = JSON.parse(storedExams);
-      // Migrate existing default exams to include categories if missing
+      // Migrate existing default exams and user-imported ones to include categories
       let migrated = false;
       const updatedExams = parsedExams.map(exam => {
         const defaultMatch = defaultExams.find(d => d.id === exam.id);
-        if (defaultMatch && !exam.category) {
+        let category = exam.category;
+        
+        if (defaultMatch && !category) {
+          category = defaultMatch.category;
+        } else if (!category || category === 'ทั่วไป') {
+          // Fallback title-based matching for previously imported or created exams
+          const titleLower = exam.title.toLowerCase();
+          if (titleLower.includes('xsoar') || titleLower.includes('pcsae')) {
+            category = 'Cortex XSOAR';
+          } else if (titleLower.includes('javascript') || titleLower.includes('js ')) {
+            category = 'JavaScript';
+          } else if (titleLower.includes('วิทยาศาสตร์') || titleLower.includes('science')) {
+            category = 'Science';
+          }
+        }
+
+        if (category && exam.category !== category) {
           migrated = true;
-          return { ...exam, category: defaultMatch.category };
+          return { ...exam, category };
         }
         return exam;
       });
@@ -91,6 +107,18 @@ function App() {
       // Optionally clean history for this exam
       const updatedHistory = history.filter(h => h.examId !== examId);
       saveHistoryToLocalStorage(updatedHistory);
+    }
+  };
+
+  // Reset Exams to Defaults Handler
+  const handleResetExams = () => {
+    if (window.confirm("คุณต้องการรีเซ็ตคลังข้อสอบกลับเป็นค่าเริ่มต้นทั้งหมดใช่หรือไม่? ข้อมูลประวัติการสอบและการแก้ไขข้อสอบปัจจุบันของคุณจะถูกล้างออก")) {
+      localStorage.removeItem('xamprep_exams');
+      localStorage.removeItem('xamprep_history');
+      setExams(defaultExams);
+      setHistory([]);
+      localStorage.setItem('xamprep_exams', JSON.stringify(defaultExams));
+      alert("รีเซ็ตคลังข้อสอบกลับเป็นค่าเริ่มต้นเสร็จสิ้น!");
     }
   };
 
@@ -190,6 +218,7 @@ function App() {
             <path d="M2 12L12 17L22 12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           ExamHub
+          <span style={{ fontSize: '11px', opacity: 0.7, marginLeft: '8px', fontWeight: '500', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '12px', letterSpacing: '0.05em' }}>v0.5</span>
         </div>
         <div className="nav-actions">
           {page !== 'dashboard' && (
@@ -213,6 +242,7 @@ function App() {
             onOpenImportExport={() => setIsImportExportOpen(true)}
             onOpenTextConverter={() => setPage('converter')}
             onReviewAttempt={handleReviewAttempt}
+            onResetExams={handleResetExams}
           />
         )}
 
