@@ -989,3 +989,14 @@ select:focus {
   font-weight: 700;
   margin-bottom: 4px;
 }
+
+/* Category Breakdown Sidebar Row Hover Effects */
+.category-stat-row:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.category-stat-row.active-row:hover {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
