@@ -6,6 +6,8 @@ All notable changes to the **ExamHub** application will be documented in this fi
 
 ## [v0.8.0] - 2026-06-15
 ### Fixed
+- **Undeclared totalExams Reference Error**: Fixed a critical runtime crash caused by referencing the undeclared `totalExams` variable in `Dashboard.jsx`, which resulted in a blank page on load.
+- **Robust History Null Checks**: Added safety checks in `Dashboard.jsx` stats, category breakdown, and attempt lists by filtering history arrays to exclude null/undefined entries and safeguarding against division-by-zero.
 - **Corrupt LocalStorage Crash Protection**: Wrapped all LocalStorage operations (`getItem`, `JSON.parse`) in robust try-catch blocks and explicit array validation (`Array.isArray`) to handle corrupt database states (like `"null"` strings or invalid formats) without crashing the application.
 
 ---
