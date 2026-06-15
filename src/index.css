@@ -1000,3 +1000,89 @@ select:focus {
   background: rgba(99, 102, 241, 0.18) !important;
   border-color: rgba(99, 102, 241, 0.35) !important;
 }
+
+/* Print CSS Stylesheet */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Hide headers, footers, buttons, and navigation filters */
+  .no-print,
+  header,
+  footer,
+  .sidebar,
+  .nav-actions,
+  button,
+  .btn,
+  .dashboard-tabs,
+  .category-filters,
+  .radial-progress-container,
+  .results-grid-summary {
+    display: none !important;
+  }
+
+  .app-container,
+  .main-content,
+  .review-section,
+  .results-container {
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    color: #000000 !important;
+  }
+
+  .results-container {
+    display: block !important;
+    border-bottom: 2px solid #333333 !important;
+    padding-bottom: 20px !important;
+    margin-bottom: 30px !important;
+  }
+
+  .review-card {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    margin-bottom: 25px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    padding: 15px !important;
+    border-radius: 6px !important;
+  }
+
+  .option-btn {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+    pointer-events: none !important;
+    box-shadow: none !important;
+  }
+
+  .explanation-box {
+    background: #f8fafc !important;
+    border-left: 4px solid #6366f1 !important;
+    color: #334155 !important;
+    box-shadow: none !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    padding: 12px !important;
+    border-radius: 0 6px 6px 0 !important;
+  }
+
+  /* Print specific text coloring */
+  .text-muted,
+  span[style*="color-muted"],
+  div[style*="color-muted"] {
+    color: #64748b !important;
+  }
+}
+

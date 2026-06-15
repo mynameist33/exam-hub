@@ -1,5 +1,56 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// Helper function to shuffle an array (Fisher-Yates)
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Prepares a shuffled copy of the exam including options within each question
+function prepareShuffledExam(originalExam) {
+  const shuffledQuestions = originalExam.questions.map((q) => {
+    // Keep track of the original index of each option
+    const optionsWithIndices = q.options.map((option, idx) => ({
+      text: option,
+      originalIndex: idx,
+    }));
+    
+    // Shuffle the options
+    const shuffledOptions = shuffleArray(optionsWithIndices);
+    
+    // Create new options array
+    const newOptions = shuffledOptions.map(o => o.text);
+    
+    // Map correctAnswer index/indices to their new shuffled indices
+    let newCorrectAnswer;
+    if (q.type === 'multi-choice') {
+      const origCorrect = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
+      newCorrectAnswer = shuffledOptions
+        .map((item, newIdx) => origCorrect.includes(item.originalIndex) ? newIdx : -1)
+        .filter(idx => idx !== -1)
+        .sort((a, b) => a - b);
+    } else {
+      const origCorrect = q.correctAnswer;
+      newCorrectAnswer = shuffledOptions.findIndex(o => o.originalIndex === origCorrect);
+    }
+
+    return {
+      ...q,
+      options: newOptions,
+      correctAnswer: newCorrectAnswer,
+    };
+  });
+
+  return {
+    ...originalExam,
+    questions: shuffleArray(shuffledQuestions),
+  };
+}
+
 export default function ExamTaker({ exam, onSubmit, onCancel }) {
   const renderQuestionText = (text) => {
     if (text.includes('\n(แปลไทย:')) {
@@ -19,6 +70,10 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
     return text;
   };
 
+  const [isStarted, setIsStarted] = useState(false);
+  const [shouldShuffle, setShouldShuffle] = useState(false);
+  const [currentExam, setCurrentExam] = useState(exam);
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState(Array(exam.questions.length).fill(null));
   const [flaggedQuestions, setFlaggedQuestions] = useState(Array(exam.questions.length).fill(false));
@@ -27,8 +82,8 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
   // Timer state (seconds remaining)
   const [timeLeft, setTimeLeft] = useState(exam.timeLimit * 60);
   const timerRef = useRef(null);
-  const totalQuestions = exam.questions.length;
-  const currentQuestion = exam.questions[currentIdx];
+  const totalQuestions = currentExam.questions.length;
+  const currentQuestion = currentExam.questions[currentIdx];
 
   // Answer state for current question in practice mode
   const [practiceAnswered, setPracticeAnswered] = useState(null); // stores index selected to show explanation
@@ -52,12 +107,23 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
     }
   };
 
+  const handleStartExam = () => {
+    let finalExam = exam;
+    if (shouldShuffle) {
+      finalExam = prepareShuffledExam(exam);
+    }
+    setCurrentExam(finalExam);
+    setUserAnswers(Array(finalExam.questions.length).fill(null));
+    setFlaggedQuestions(Array(finalExam.questions.length).fill(false));
+    setIsStarted(true);
+  };
+
   const submitQuiz = useCallback(() => {
     clearInterval(timerRef.current);
     
     // Calculate score
     let score = 0;
-    exam.questions.forEach((q, idx) => {
+    currentExam.questions.forEach((q, idx) => {
       const uAns = userAnswersRef.current[idx];
       if (q.type === 'multi-choice') {
         const uArr = Array.isArray(uAns) ? uAns : [];
@@ -71,7 +137,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
       }
     });
 
-    const timeSpent = exam.timeLimit * 60 - timeLeftRef.current;
+    const timeSpent = currentExam.timeLimit * 60 - timeLeftRef.current;
 
     onSubmit({
       score,
@@ -79,7 +145,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
       userAnswers: userAnswersRef.current,
       timeSpent
     });
-  }, [exam, onSubmit, totalQuestions]);
+  }, [currentExam, onSubmit, totalQuestions]);
 
   const handleAutoSubmit = useCallback(() => {
     alert("หมดเวลาทำข้อสอบแล้ว! ระบบจะทำการส่งข้อสอบของคุณโดยอัตโนมัติ");
@@ -87,6 +153,8 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
   }, [submitQuiz]);
 
   useEffect(() => {
+    if (!isStarted) return;
+
     // Start countdown timer
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -100,7 +168,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [handleAutoSubmit]);
+  }, [isStarted, handleAutoSubmit]);
 
   const handleSubmitClick = () => {
     const unansweredCount = userAnswers.filter(ans => {
@@ -117,6 +185,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
       submitQuiz();
     }
   };
+
 
   const handleSelectOption = (optIdx) => {
     const updated = [...userAnswers];
@@ -154,6 +223,72 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
 
   const answeredCount = userAnswers.filter(ans => ans !== null).length;
   const progressPercent = Math.round((answeredCount / totalQuestions) * 100);
+
+  if (!isStarted) {
+    return (
+      <div className="ready-screen-container animate-fade flex-center" style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div className="ready-card glass-panel text-center" style={{ padding: '40px', maxWidth: '600px', width: '100%', borderRadius: '16px', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ fontSize: '48px', marginBottom: '15px' }}>📝</div>
+          <h2 style={{ fontSize: '26px', marginBottom: '8px', color: 'var(--text-main)' }}>{exam.title}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14.5px', marginBottom: '25px', lineHeight: '1.6' }}>
+            {exam.description || 'ไม่มีคำอธิบายสำหรับข้อสอบชุดนี้'}
+          </p>
+
+          <div className="ready-meta-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>จำนวนคำถาม</span>
+              <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-primary)', marginTop: '4px' }}>{exam.questions.length} ข้อ</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>เวลาทำข้อสอบ</span>
+              <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-primary)', marginTop: '4px' }}>{exam.timeLimit} นาที</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>เกณฑ์ผ่านการสอบ</span>
+              <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-success)', marginTop: '4px' }}>{exam.passPercentage}%</span>
+            </div>
+          </div>
+
+          <div className="ready-options" style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px', textAlign: 'left', background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <label className="flex-row cursor-pointer" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <input
+                type="checkbox"
+                style={{ width: '18px', height: '18px', marginTop: '3px', accentColor: 'var(--color-primary)' }}
+                checked={shouldShuffle}
+                onChange={(e) => setShouldShuffle(e.target.checked)}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: '600', fontSize: '14.5px', color: 'var(--text-main)' }}>🔀 สลับข้อสอบและตัวเลือก (Shuffle Mode)</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>สลับลำดับโจทย์และลำดับตัวเลือกตอบ A, B, C, D สุ่มใหม่ทุกครั้ง</span>
+              </div>
+            </label>
+
+            <label className="flex-row cursor-pointer" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+              <input
+                type="checkbox"
+                style={{ width: '18px', height: '18px', marginTop: '3px', accentColor: 'var(--color-primary)' }}
+                checked={isPracticeMode}
+                onChange={(e) => setIsPracticeMode(e.target.checked)}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: '600', fontSize: '14.5px', color: 'var(--text-main)' }}>💡 เปิดโหมดฝึกซ้อมเริ่มต้น (Practice Mode)</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>แสดงเฉลยและคำอธิบายเป็นรายข้อทันทีที่เลือกตอบ</span>
+              </div>
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+            <button className="btn btn-secondary" style={{ padding: '10px 24px', minWidth: '110px' }} onClick={onCancel}>
+              ย้อนกลับ
+            </button>
+            <button className="btn btn-primary" style={{ padding: '10px 32px', minWidth: '150px', fontSize: '14.5px' }} onClick={handleStartExam}>
+              🚀 เริ่มการสอบ
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="taker-layout animate-fade">

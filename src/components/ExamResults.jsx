@@ -119,9 +119,16 @@ export default function ExamResults({ result, exam, onRetake, onBackToDashboard 
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+        <div className="no-print" style={{ display: 'flex', gap: '15px', marginTop: '10px', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={onBackToDashboard}>
             กลับสู่หน้าหลัก
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            style={{ background: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)', color: '#c7d2fe' }}
+            onClick={() => window.print()}
+          >
+            🖨️ พิมพ์ข้อสอบ / บันทึก PDF
           </button>
           <button className="btn btn-primary" onClick={onRetake}>
             🔄 ทำข้อสอบใหม่อีกครั้ง
@@ -133,7 +140,7 @@ export default function ExamResults({ result, exam, onRetake, onBackToDashboard 
       <div className="review-section">
         <div className="flex-between">
           <h3>ตรวจทานข้อสอบอย่างละเอียด</h3>
-          <div className="nav-actions" style={{ gap: '8px' }}>
+          <div className="nav-actions no-print" style={{ gap: '8px' }}>
             <button 
               className={`btn btn-secondary ${filter === 'all' ? 'btn-outline-primary' : ''}`} 
               style={{ padding: '6px 12px', fontSize: '13px' }} 
