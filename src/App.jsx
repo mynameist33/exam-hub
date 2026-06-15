@@ -254,7 +254,7 @@ function App() {
             </svg>
             ExamHub
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.9</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v1.0.0</span>
         </div>
         <div className="nav-actions">
           {page !== 'dashboard' && (
