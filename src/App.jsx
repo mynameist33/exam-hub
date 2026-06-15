@@ -21,7 +21,22 @@ function App() {
     const storedHistory = localStorage.getItem('xamprep_history');
 
     if (storedExams) {
-      setExams(JSON.parse(storedExams));
+      const parsedExams = JSON.parse(storedExams);
+      // Migrate existing default exams to include categories if missing
+      let migrated = false;
+      const updatedExams = parsedExams.map(exam => {
+        const defaultMatch = defaultExams.find(d => d.id === exam.id);
+        if (defaultMatch && !exam.category) {
+          migrated = true;
+          return { ...exam, category: defaultMatch.category };
+        }
+        return exam;
+      });
+
+      setExams(updatedExams);
+      if (migrated) {
+        localStorage.setItem('xamprep_exams', JSON.stringify(updatedExams));
+      }
     } else {
       // Load sample exams on first load
       setExams(defaultExams);
