@@ -210,15 +210,17 @@ function App() {
 
       {/* Global Header */}
       <header className="app-header glass-panel">
-        <div className="app-logo" onClick={handleBackToDashboard}>
-          {/* Custom SVG Logo */}
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px' }}>
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 17L12 22L22 17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12L12 17L22 12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          ExamHub
-          <span style={{ fontSize: '11px', opacity: 0.7, marginLeft: '8px', fontWeight: '500', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '12px', letterSpacing: '0.05em' }}>v0.5</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="app-logo" onClick={handleBackToDashboard}>
+            {/* Custom SVG Logo */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px' }}>
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17L12 22L22 17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12L12 17L22 12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            ExamHub
+          </div>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.5</span>
         </div>
         <div className="nav-actions">
           {page !== 'dashboard' && (
