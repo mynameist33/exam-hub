@@ -22,16 +22,26 @@ export default function Dashboard({
     ? exams
     : exams.filter(e => (e.category || 'ทั่วไป') === selectedCategory);
 
-  // Calculate Stats
-  const totalExams = exams.length;
-  const examsTaken = history.length;
+  // Calculate Stats dynamically based on selected category
+  const filteredHistory = selectedCategory === 'ทั้งหมด'
+    ? history
+    : history.filter(h => {
+        const exam = exams.find(e => e.id === h.examId);
+        return exam && (exam.category || 'ทั่วไป') === selectedCategory;
+      });
+
+  const totalExamsDisplay = selectedCategory === 'ทั้งหมด' ? exams.length : filteredExams.length;
+  const examsTakenDisplay = filteredHistory.length;
   
-  const averageScore = examsTaken > 0 
-    ? Math.round(history.reduce((sum, h) => sum + (h.score / h.totalQuestions) * 100, 0) / examsTaken)
+  const averageScoreDisplay = examsTakenDisplay > 0 
+    ? Math.round(filteredHistory.reduce((sum, h) => sum + (h.score / h.totalQuestions) * 100, 0) / examsTakenDisplay)
     : 0;
 
-  const totalTimeSpentSeconds = history.reduce((sum, h) => sum + h.timeSpent, 0);
-  const totalTimeMinutes = Math.round(totalTimeSpentSeconds / 60);
+  const totalTimeSpentSecondsDisplay = filteredHistory.reduce((sum, h) => sum + h.timeSpent, 0);
+  const totalTimeMinutesDisplay = Math.round(totalTimeSpentSecondsDisplay / 60);
+
+  // Extract unique categories (excluding 'ทั้งหมด') for breakdown list
+  const uniqueCategoriesOnly = [...new Set(exams.map(e => e.category || 'ทั่วไป'))];
 
   // Helper to find highest score for a specific exam
   const getExamHighScore = (examId) => {
@@ -46,33 +56,80 @@ export default function Dashboard({
     <div className="dashboard-grid animate-fade">
       {/* Sidebar Stats Panel */}
       <div className="stats-sidebar glass-panel">
-        <h3 style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px', marginBottom: '5px' }}>
-          แผงรายงานความคืบหน้า
+        <h3 style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px', marginBottom: '15px' }}>
+          {selectedCategory === 'ทั้งหมด' ? 'รายงานภาพรวม' : `รายงาน: ${selectedCategory}`}
         </h3>
         
         <div className="stat-item">
-          <span className="stat-label">ข้อสอบทั้งหมด</span>
-          <span className="stat-value">{totalExams} ชุด</span>
+          <span className="stat-label">จำนวนข้อสอบ</span>
+          <span className="stat-value">{totalExamsDisplay} ชุด</span>
         </div>
 
         <div className="stat-item">
-          <span className="stat-label">ทำข้อสอบสำเร็จแล้ว</span>
-          <span className="stat-value">{examsTaken} ครั้ง</span>
+          <span className="stat-label">ทำสำเร็จแล้ว</span>
+          <span className="stat-value">{examsTakenDisplay} ครั้ง</span>
         </div>
 
         <div className="stat-item">
-          <span className="stat-label">คะแนนเฉลี่ยรวม</span>
-          <span className="stat-value highlight">{averageScore}%</span>
+          <span className="stat-label">คะแนนเฉลี่ย</span>
+          <span className="stat-value highlight">{averageScoreDisplay}%</span>
         </div>
 
         <div className="stat-item">
-          <span className="stat-label">เวลาฝึกซ้อมรวม</span>
-          <span className="stat-value">{totalTimeMinutes} นาที</span>
+          <span className="stat-label">เวลาฝึกซ้อม</span>
+          <span className="stat-value">{totalTimeMinutesDisplay} นาที</span>
         </div>
+
+        {/* Category breakdown visual list */}
+        {exams.length > 0 && (
+          <div className="category-breakdown-section" style={{ marginTop: '25px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '15px' }}>
+            <h4 style={{ fontSize: '13px', marginBottom: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              วิเคราะห์รายหมวดหมู่
+            </h4>
+            {uniqueCategoriesOnly.map(cat => {
+              const catExams = exams.filter(e => (e.category || 'ทั่วไป') === cat);
+              const catHistory = history.filter(h => {
+                const exam = exams.find(e => e.id === h.examId);
+                return exam && (exam.category || 'ทั่วไป') === cat;
+              });
+              const catAvg = catHistory.length > 0
+                ? Math.round(catHistory.reduce((sum, h) => sum + (h.score / h.totalQuestions) * 100, 0) / catHistory.length)
+                : 0;
+              const isCatActive = selectedCategory === cat;
+
+              return (
+                <div 
+                  key={cat} 
+                  className={`category-stat-row ${isCatActive ? 'active-row' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    fontSize: '12.5px', 
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    marginBottom: '6px',
+                    cursor: 'pointer',
+                    background: isCatActive ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                    border: isCatActive ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid transparent',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title={`คลิกเพื่อกรองหมวดหมู่ ${cat}`}
+                >
+                  <span style={{ fontWeight: '500', color: isCatActive ? 'var(--text-main)' : 'var(--text-muted)' }}>🏷️ {cat}</span>
+                  <span style={{ fontWeight: '600', color: catHistory.length > 0 ? 'var(--color-success)' : 'var(--text-muted)' }}>
+                    {catHistory.length > 0 ? `${catAvg}%` : 'ไม่มีข้อมูล'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {history.length > 0 && (
-          <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)' }}>
-            สถิติได้รับการอัปเดตแบบเรียลไทม์ผ่าน LocalStorage
+          <div style={{ marginTop: '15px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+            สถิติอ้างอิงตามฐานข้อมูล LocalStorage
           </div>
         )}
       </div>
