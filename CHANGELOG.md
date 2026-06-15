@@ -4,6 +4,20 @@ All notable changes to the **ExamHub** application will be documented in this fi
 
 ---
 
+## [v0.9.0] - 2026-06-15
+### Added
+- **Feature #7 — Error Boundary Component**: Added a React class component `ErrorBoundary` wrapping the main app area to catch runtime errors in production and show a beautiful fallback UI with clean reset options.
+
+### Fixed
+- **Bug Fix #1 — Stale Closure in ExamTaker (Timer Countdown)**: Fixed a stale closure bug where timer auto-submission sent blank answers by introducing React `useRef` to store real-time values of answers and time remaining.
+- **Bug Fix #2 — ExamResults Filter Multi-Choice Support**: Added an `isAnswerCorrect` helper function to handle both array comparison (multi-choice) and scalar comparison (single-choice), resolving a filter issue on the results screen.
+- **Bug Fix #3 — TextConverter Duplicate style Attribute**: Merged duplicate `style` props on the meta configuration block inside `TextConverter.jsx`.
+- **Bug Fix #4 — ExamEditor Multi-Choice Mark**: Updated the correct-answer checkmark inside the `ExamEditor` question list to correctly render checkmarks for multi-choice answers.
+- **Bug Fix #5 — TextConverter Character Class Regex Pipe**: Replaced incorrect `|` characters in the character classes `[A-G|a-g|ก-จ]` with correct ranges `[A-Ga-gก-จ]`, avoiding character class misinterpretation.
+- **Bug Fix #6 — ImportExport Batch Array Support**: Added validation and structure parsing to handle both single exam objects and arrays of exams in the JSON Import text box.
+
+---
+
 ## [v0.8.0] - 2026-06-15
 ### Fixed
 - **Undeclared totalExams Reference Error**: Fixed a critical runtime crash caused by referencing the undeclared `totalExams` variable in `Dashboard.jsx`, which resulted in a blank page on load.
