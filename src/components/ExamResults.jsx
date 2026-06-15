@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MarkdownRenderer from './MarkdownRenderer';
 
 export default function ExamResults({ result, exam, onRetake, onBackToDashboard }) {
   const renderQuestionText = (text) => {
@@ -9,14 +10,14 @@ export default function ExamResults({ result, exam, onRetake, onBackToDashboard 
       
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ fontWeight: '500' }}>{english}</div>
+          <div style={{ fontWeight: '500' }}><MarkdownRenderer text={english} /></div>
           <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontStyle: 'italic', fontWeight: 'normal', marginTop: '4px' }}>
-            แปลไทย: {thai}
+            แปลไทย: <MarkdownRenderer text={thai} />
           </div>
         </div>
       );
     }
-    return text;
+    return <MarkdownRenderer text={text} />;
   };
 
   const { score, totalQuestions, userAnswers, timeSpent } = result;
@@ -219,7 +220,7 @@ export default function ExamResults({ result, exam, onRetake, onBackToDashboard 
                         <span className="option-index">
                           {String.fromCharCode(65 + oIdx)}
                         </span>
-                        <span style={{ flex: 1 }}>{opt}</span>
+                        <span style={{ flex: 1 }}><MarkdownRenderer text={opt} /></span>
                         {isCorrectOpt && <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>คำตอบที่ถูกต้อง</span>}
                         {isUserSelected && !isCorrectOpt && <span style={{ color: '#ff8080', fontWeight: 'bold' }}>คุณเลือกข้อนี้</span>}
                       </div>
@@ -230,7 +231,7 @@ export default function ExamResults({ result, exam, onRetake, onBackToDashboard 
                 {q.explanation && (
                   <div className="explanation-box">
                     <div className="explanation-title">💡 วิเคราะห์และเฉลยละเอียด</div>
-                    <div className="explanation-content">{q.explanation}</div>
+                    <div className="explanation-content"><MarkdownRenderer text={q.explanation} /></div>
                   </div>
                 )}
               </div>
