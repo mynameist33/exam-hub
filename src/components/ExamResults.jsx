@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function ExamResults({ result, exam, onRetake, onBackToDashboard }) {
   const renderQuestionText = (text) => {
@@ -25,6 +25,15 @@ export default function ExamResults({ result, exam, onRetake, onBackToDashboard 
   
   const [filter, setFilter] = useState('all'); // 'all' | 'correct' | 'incorrect'
 
+  const isAnswerCorrect = (uAns, q) => {
+    if (q.type === 'multi-choice') {
+      const uArr = Array.isArray(uAns) ? uAns : [];
+      const cArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
+      return uArr.length === cArr.length && uArr.every(val => cArr.includes(val));
+    }
+    return uAns === q.correctAnswer;
+  };
+
   // Format time (e.g. 5m 24s)
   // Format time (e.g. 11:09 นาที)
   const formatTime = (seconds) => {
@@ -41,7 +50,7 @@ export default function ExamResults({ result, exam, onRetake, onBackToDashboard 
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   const filteredQuestions = exam.questions.filter((q, idx) => {
-    const isCorrect = userAnswers[idx] === q.correctAnswer;
+    const isCorrect = isAnswerCorrect(userAnswers[idx], q);
     if (filter === 'correct') return isCorrect;
     if (filter === 'incorrect') return !isCorrect;
     return true;
