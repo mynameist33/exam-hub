@@ -22,17 +22,18 @@ function App() {
 
     if (storedExams) {
       const parsedExams = JSON.parse(storedExams);
-      // Migrate existing default exams and user-imported ones to include categories
+      // Migrate existing default exams and user-imported ones to include categories safely
       let migrated = false;
       const updatedExams = parsedExams.map(exam => {
+        if (!exam) return exam;
         const defaultMatch = defaultExams.find(d => d.id === exam.id);
         let category = exam.category;
         
         if (defaultMatch && !category) {
           category = defaultMatch.category;
         } else if (!category || category === 'ทั่วไป') {
-          // Fallback title-based matching for previously imported or created exams
-          const titleLower = exam.title.toLowerCase();
+          // Fallback title-based matching for previously imported or created exams safely
+          const titleLower = (exam.title || '').toLowerCase();
           if (titleLower.includes('xsoar') || titleLower.includes('pcsae')) {
             category = 'Cortex XSOAR';
           } else if (titleLower.includes('javascript') || titleLower.includes('js ')) {
@@ -220,7 +221,7 @@ function App() {
             </svg>
             ExamHub
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.6</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.7</span>
         </div>
         <div className="nav-actions">
           {page !== 'dashboard' && (
