@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { defaultExams } from './utils/defaultExams';
 import Dashboard from './components/Dashboard';
 import ExamTaker from './components/ExamTaker';
@@ -8,8 +8,41 @@ import ImportExport from './components/ImportExport';
 import TextConverter from './components/TextConverter';
 import ErrorBoundary from './components/ErrorBoundary';
 
+const getTimestamp = () => Date.now();
+
 function App() {
   const [page, setPage] = useState('dashboard'); // 'dashboard' | 'taker' | 'editor' | 'results'
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('examhub_theme') || 'dark';
+  });
+
+  const [srs, setSrs] = useState(() => {
+    try {
+      const stored = localStorage.getItem('examhub_srs');
+      if (stored && stored !== 'null') {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      return [];
+    } catch (e) {
+      console.error("Failed to parse SRS from LocalStorage:", e);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+    localStorage.setItem('examhub_theme', theme);
+  }, [theme]);
+
+  const saveSrsToLocalStorage = (updatedSrs) => {
+    setSrs(updatedSrs);
+    localStorage.setItem('examhub_srs', JSON.stringify(updatedSrs));
+  };
   const [exams, setExams] = useState(() => {
     try {
       const storedExams = localStorage.getItem('xamprep_exams');
@@ -95,7 +128,7 @@ function App() {
   // Import Exam Handler
   const handleImportExam = (newExamOrExams) => {
     const assignIds = (exam, examIdx = 0) => {
-      const importTime = Date.now();
+      const importTime = getTimestamp();
       return {
         ...exam,
         id: exam.id || `exam-imported-${importTime}-${examIdx}`,
@@ -164,8 +197,44 @@ function App() {
 
   // Submit completed exam
   const handleSubmitExam = (resultSummary) => {
+    // 1. If this is an SRS review session, handle it differently
+    if (activeExam.isSrsSession) {
+      const updatedSrsQueue = [...srs];
+      activeExam.questions.forEach((q, idx) => {
+        const uAns = resultSummary.userAnswers[idx];
+        const isCorrect = q.type === 'multi-choice'
+          ? (Array.isArray(uAns) && Array.isArray(q.correctAnswer) && uAns.length === q.correctAnswer.length && uAns.every(val => q.correctAnswer.includes(val)))
+          : (uAns === q.correctAnswer);
+        
+        const cardIdx = updatedSrsQueue.findIndex(item => item.examId === q.srsCard.examId && item.questionId === q.id);
+        if (cardIdx !== -1) {
+          if (isCorrect) {
+            // Double interval
+            const nextInterval = q.srsCard.interval * 2;
+            updatedSrsQueue[cardIdx] = {
+              ...updatedSrsQueue[cardIdx],
+              interval: nextInterval,
+              nextReview: getTimestamp() + nextInterval * 24 * 3600 * 1000
+            };
+          } else {
+            // Reset interval to 1 day
+            updatedSrsQueue[cardIdx] = {
+              ...updatedSrsQueue[cardIdx],
+              interval: 1,
+              nextReview: getTimestamp() + 24 * 3600 * 1000
+            };
+          }
+        }
+      });
+      saveSrsToLocalStorage(updatedSrsQueue);
+      alert(`ทบทวนความจำเสร็จสิ้น! ตอบถูก ${resultSummary.score}/${resultSummary.totalQuestions} ข้อ`);
+      handleBackToDashboard();
+      return;
+    }
+
+    // Standard exam submission logic
     const newAttempt = {
-      id: `attempt-${Date.now()}`,
+      id: `attempt-${getTimestamp()}`,
       examId: activeExam.id,
       examTitle: activeExam.title,
       score: resultSummary.score,
@@ -181,6 +250,34 @@ function App() {
       })
     };
 
+    // Add wrong answers to SRS queue
+    const updatedSrsQueue = [...srs];
+    let srsAddedCount = 0;
+    activeExam.questions.forEach((q, idx) => {
+      const uAns = resultSummary.userAnswers[idx];
+      const isCorrect = q.type === 'multi-choice'
+        ? (Array.isArray(uAns) && Array.isArray(q.correctAnswer) && uAns.length === q.correctAnswer.length && uAns.every(val => q.correctAnswer.includes(val)))
+        : (uAns === q.correctAnswer);
+
+      if (!isCorrect && q.id) {
+        const exists = updatedSrsQueue.some(item => item.examId === activeExam.id && item.questionId === q.id);
+        if (!exists) {
+          updatedSrsQueue.push({
+            examId: activeExam.id,
+            examTitle: activeExam.title,
+            questionId: q.id,
+            interval: 1,
+            nextReview: getTimestamp() + 24 * 3600 * 1000
+          });
+          srsAddedCount++;
+        }
+      }
+    });
+
+    if (srsAddedCount > 0) {
+      saveSrsToLocalStorage(updatedSrsQueue);
+    }
+
     // Limit history to 3 latest versions/attempts per exam
     const thisExamHistory = history.filter(h => h.examId === activeExam.id);
     const limitedThisExamHistory = thisExamHistory.slice(0, 2); // Keep top 2 oldest of the recent 3
@@ -191,6 +288,50 @@ function App() {
     
     setActiveResult(resultSummary);
     setPage('results');
+  };
+
+  const handleStartSrsReview = () => {
+    const now = getTimestamp();
+    const dueCards = srs.filter(card => card.nextReview <= now);
+    
+    if (dueCards.length === 0) {
+      alert("ไม่มีข้อสอบที่ถึงกำหนดทบทวนในวันนี้!");
+      return;
+    }
+
+    const srsQuestions = [];
+    dueCards.forEach(card => {
+      const matchingExam = exams.find(e => e && e.id === card.examId);
+      if (matchingExam) {
+        const matchingQuestion = matchingExam.questions.find(q => q.id === card.questionId);
+        if (matchingQuestion) {
+          srsQuestions.push({
+            ...matchingQuestion,
+            srsCard: card,
+            originalExamTitle: matchingExam.title
+          });
+        }
+      }
+    });
+
+    if (srsQuestions.length === 0) {
+      alert("ไม่พบคำถามเดิมในระบบแล้ว ข้อมูลวิชาอาจถูกลบไปแล้ว");
+      return;
+    }
+
+    const tempSrsExam = {
+      id: 'srs-review-session',
+      title: '🧠 ทบทวนความจำ Spaced Repetition',
+      description: 'ทบทวนเฉพาะหัวข้อที่ตอบผิดสะสมเพื่อเสริมสร้างความจำระยะยาว',
+      timeLimit: Math.max(5, Math.round(srsQuestions.length * 1.5)), // 1.5 mins per question
+      passPercentage: 100,
+      category: 'ทบทวนประจำวัน',
+      questions: srsQuestions,
+      isSrsSession: true
+    };
+
+    setActiveExam(tempSrsExam);
+    setPage('taker');
   };
 
   const handleEditExam = (exam) => {
@@ -254,9 +395,17 @@ function App() {
             </svg>
             ExamHub
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v1.0.0</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v1.1.0</span>
         </div>
-        <div className="nav-actions">
+        <div className="nav-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }} 
+            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            title={theme === 'light' ? 'เปลี่ยนเป็นธีมมืด' : 'เปลี่ยนเป็นธีมสว่าง'}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
           {page !== 'dashboard' && (
             <button className="btn btn-secondary" onClick={handleBackToDashboard}>
               🏠 กลับหน้าหลัก
@@ -272,6 +421,8 @@ function App() {
           <Dashboard
             exams={exams}
             history={history}
+            srs={srs}
+            onStartSrsReview={handleStartSrsReview}
             onStartExam={handleStartExam}
             onEditExam={handleEditExam}
             onDeleteExam={handleDeleteExam}
