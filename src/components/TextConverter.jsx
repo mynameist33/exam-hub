@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 export default function TextConverter({ onImport, onCancel }) {
   const [title, setTitle] = useState('ข้อสอบนำเข้าจากข้อความดิบ');
+  const [category, setCategory] = useState('ทั่วไป');
   const [description, setDescription] = useState('ชุดข้อสอบที่แปลงจากข้อความตัวอักษรธรรมดา');
   const [timeLimit, setTimeLimit] = useState(15);
   const [passPercentage, setPassPercentage] = useState(70);
@@ -158,6 +159,7 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
     const examData = {
       id: `exam-parsed-${Date.now()}`,
       title,
+      category: category.trim() || 'ทั่วไป',
       description,
       timeLimit: parseInt(timeLimit) || 15,
       passPercentage: parseInt(passPercentage) || 70,
@@ -183,7 +185,7 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
       {/* Meta configuration */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }} className="glass-panel" style={{ padding: '20px', background: 'rgba(0,0,0,0.1)' }}>
         <div className="form-row">
-          <div className="form-group">
+          <div className="form-group" style={{ flex: 1.5 }}>
             <label htmlFor="conv-title">ชื่อข้อสอบ / วิชา</label>
             <input
               id="conv-title"
@@ -192,7 +194,17 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
-          <div className="form-group">
+          <div className="form-group" style={{ flex: 1 }}>
+            <label htmlFor="conv-category">หมวดหมู่ / เรื่อง</label>
+            <input
+              id="conv-category"
+              type="text"
+              placeholder="ตัวอย่าง: JavaScript"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            />
+          </div>
+          <div className="form-group" style={{ flex: 2 }}>
             <label htmlFor="conv-desc">คำอธิบายสั้นๆ</label>
             <input
               id="conv-desc"
