@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function Dashboard({ 
   exams, 
@@ -11,7 +11,16 @@ export default function Dashboard({
   onOpenTextConverter,
   onReviewAttempt
 }) {
-  
+  const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+
+  // Extract unique categories dynamically
+  const categories = ['ทั้งหมด', ...new Set(exams.map(e => e.category || 'ทั่วไป'))];
+
+  // Filter exams based on selected category
+  const filteredExams = selectedCategory === 'ทั้งหมด'
+    ? exams
+    : exams.filter(e => (e.category || 'ทั่วไป') === selectedCategory);
+
   // Calculate Stats
   const totalExams = exams.length;
   const examsTaken = history.length;
@@ -84,6 +93,20 @@ export default function Dashboard({
           </div>
         </div>
 
+        {totalExams > 0 && (
+          <div className="category-filters animate-fade">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                className={`category-pill ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                🏷️ {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
         {totalExams === 0 ? (
           <div className="glass-panel text-center animate-fade" style={{ padding: '60px 20px' }}>
             <h3 style={{ marginBottom: '10px' }}>ไม่มีข้อสอบอยู่ในคลังของคุณ</h3>
@@ -104,13 +127,14 @@ export default function Dashboard({
           </div>
         ) : (
           <div className="exams-grid">
-            {exams.map((exam) => {
+            {filteredExams.map((exam) => {
               const highScore = getExamHighScore(exam.id);
               const isPassed = highScore !== null && highScore >= exam.passPercentage;
 
               return (
                 <div key={exam.id} className="exam-card glass-panel animate-fade">
                   <div>
+                    <div className="exam-card-category">{exam.category || 'ทั่วไป'}</div>
                     <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '8px' }}>
                       <h3 className="exam-card-title">{exam.title}</h3>
                       {highScore !== null ? (
