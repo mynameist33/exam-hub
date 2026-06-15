@@ -7,15 +7,8 @@ import ExamResults from './components/ExamResults';
 import ImportExport from './components/ImportExport';
 import TextConverter from './components/TextConverter';
 import ErrorBoundary from './components/ErrorBoundary';
-import LoginScreen from './components/LoginScreen';
-
-// *** กำหนดรหัสผ่านสำหรับเข้าใช้งานระบบตรงนี้ ***
-const APP_PASSCODE = '1234';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('examhub_authenticated') === 'true';
-  });
   const [page, setPage] = useState('dashboard'); // 'dashboard' | 'taker' | 'editor' | 'results'
   const [exams, setExams] = useState(() => {
     try {
@@ -214,25 +207,6 @@ function App() {
     setPage('taker');
   };
 
-  const handleLogin = (enteredCode) => {
-    if (enteredCode === APP_PASSCODE) {
-      setIsAuthenticated(true);
-      localStorage.setItem('examhub_authenticated', 'true');
-      return true;
-    }
-    return false;
-  };
-
-  const handleLogout = () => {
-    if (window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
-      setIsAuthenticated(false);
-      localStorage.removeItem('examhub_authenticated');
-      setPage('dashboard');
-      setActiveExam(null);
-      setActiveResult(null);
-    }
-  };
-
   const handleBackToDashboard = () => {
     setPage('dashboard');
     setActiveExam(null);
@@ -255,10 +229,6 @@ function App() {
     });
     setPage('results');
   };
-
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
 
   return (
     <div className="app-container">
@@ -286,19 +256,12 @@ function App() {
           </div>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v1.0.0</span>
         </div>
-        <div className="nav-actions no-print" style={{ display: 'flex', gap: '8px' }}>
+        <div className="nav-actions">
           {page !== 'dashboard' && (
             <button className="btn btn-secondary" onClick={handleBackToDashboard}>
               🏠 กลับหน้าหลัก
             </button>
           )}
-          <button 
-            className="btn btn-secondary" 
-            style={{ background: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }} 
-            onClick={handleLogout}
-          >
-            🚪 ออกจากระบบ
-          </button>
         </div>
       </header>
 
