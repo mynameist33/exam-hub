@@ -17,51 +17,72 @@ function App() {
 
   // Initialize and load data from LocalStorage
   useEffect(() => {
-    const storedExams = localStorage.getItem('xamprep_exams');
-    const storedHistory = localStorage.getItem('xamprep_history');
+    try {
+      const storedExams = localStorage.getItem('xamprep_exams');
+      if (storedExams && storedExams !== 'null') {
+        const parsedExams = JSON.parse(storedExams);
+        if (Array.isArray(parsedExams)) {
+          // Migrate existing default exams and user-imported ones to include categories safely
+          let migrated = false;
+          const updatedExams = parsedExams.map(exam => {
+            if (!exam) return exam;
+            const defaultMatch = defaultExams.find(d => d.id === exam.id);
+            let category = exam.category;
+            
+            if (defaultMatch && !category) {
+              category = defaultMatch.category;
+            } else if (!category || category === 'ทั่วไป') {
+              // Fallback title-based matching for previously imported or created exams safely
+              const titleLower = (exam.title || '').toLowerCase();
+              if (titleLower.includes('xsoar') || titleLower.includes('pcsae')) {
+                category = 'Cortex XSOAR';
+              } else if (titleLower.includes('javascript') || titleLower.includes('js ')) {
+                category = 'JavaScript';
+              } else if (titleLower.includes('วิทยาศาสตร์') || titleLower.includes('science')) {
+                category = 'Science';
+              }
+            }
 
-    if (storedExams) {
-      const parsedExams = JSON.parse(storedExams);
-      // Migrate existing default exams and user-imported ones to include categories safely
-      let migrated = false;
-      const updatedExams = parsedExams.map(exam => {
-        if (!exam) return exam;
-        const defaultMatch = defaultExams.find(d => d.id === exam.id);
-        let category = exam.category;
-        
-        if (defaultMatch && !category) {
-          category = defaultMatch.category;
-        } else if (!category || category === 'ทั่วไป') {
-          // Fallback title-based matching for previously imported or created exams safely
-          const titleLower = (exam.title || '').toLowerCase();
-          if (titleLower.includes('xsoar') || titleLower.includes('pcsae')) {
-            category = 'Cortex XSOAR';
-          } else if (titleLower.includes('javascript') || titleLower.includes('js ')) {
-            category = 'JavaScript';
-          } else if (titleLower.includes('วิทยาศาสตร์') || titleLower.includes('science')) {
-            category = 'Science';
+            if (category && exam.category !== category) {
+              migrated = true;
+              return { ...exam, category };
+            }
+            return exam;
+          });
+
+          setExams(updatedExams);
+          if (migrated) {
+            localStorage.setItem('xamprep_exams', JSON.stringify(updatedExams));
           }
+        } else {
+          setExams(defaultExams);
+          localStorage.setItem('xamprep_exams', JSON.stringify(defaultExams));
         }
-
-        if (category && exam.category !== category) {
-          migrated = true;
-          return { ...exam, category };
-        }
-        return exam;
-      });
-
-      setExams(updatedExams);
-      if (migrated) {
-        localStorage.setItem('xamprep_exams', JSON.stringify(updatedExams));
+      } else {
+        // Load sample exams on first load
+        setExams(defaultExams);
+        localStorage.setItem('xamprep_exams', JSON.stringify(defaultExams));
       }
-    } else {
-      // Load sample exams on first load
+    } catch (e) {
+      console.error("Failed to parse exams from LocalStorage:", e);
       setExams(defaultExams);
-      localStorage.setItem('xamprep_exams', JSON.stringify(defaultExams));
     }
 
-    if (storedHistory) {
-      setHistory(JSON.parse(storedHistory));
+    try {
+      const storedHistory = localStorage.getItem('xamprep_history');
+      if (storedHistory && storedHistory !== 'null') {
+        const parsedHistory = JSON.parse(storedHistory);
+        if (Array.isArray(parsedHistory)) {
+          setHistory(parsedHistory);
+        } else {
+          setHistory([]);
+        }
+      } else {
+        setHistory([]);
+      }
+    } catch (e) {
+      console.error("Failed to parse history from LocalStorage:", e);
+      setHistory([]);
     }
   }, []);
 
@@ -221,7 +242,7 @@ function App() {
             </svg>
             ExamHub
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.7</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.8</span>
         </div>
         <div className="nav-actions">
           {page !== 'dashboard' && (
