@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import MarkdownRenderer from './MarkdownRenderer';
 
 // Helper function to shuffle an array (Fisher-Yates)
 function shuffleArray(array) {
@@ -10,47 +11,6 @@ function shuffleArray(array) {
   return arr;
 }
 
-// Prepares a shuffled copy of the exam including options within each question
-function prepareShuffledExam(originalExam) {
-  const shuffledQuestions = originalExam.questions.map((q) => {
-    // Keep track of the original index of each option
-    const optionsWithIndices = q.options.map((option, idx) => ({
-      text: option,
-      originalIndex: idx,
-    }));
-    
-    // Shuffle the options
-    const shuffledOptions = shuffleArray(optionsWithIndices);
-    
-    // Create new options array
-    const newOptions = shuffledOptions.map(o => o.text);
-    
-    // Map correctAnswer index/indices to their new shuffled indices
-    let newCorrectAnswer;
-    if (q.type === 'multi-choice') {
-      const origCorrect = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
-      newCorrectAnswer = shuffledOptions
-        .map((item, newIdx) => origCorrect.includes(item.originalIndex) ? newIdx : -1)
-        .filter(idx => idx !== -1)
-        .sort((a, b) => a - b);
-    } else {
-      const origCorrect = q.correctAnswer;
-      newCorrectAnswer = shuffledOptions.findIndex(o => o.originalIndex === origCorrect);
-    }
-
-    return {
-      ...q,
-      options: newOptions,
-      correctAnswer: newCorrectAnswer,
-    };
-  });
-
-  return {
-    ...originalExam,
-    questions: shuffleArray(shuffledQuestions),
-  };
-}
-
 export default function ExamTaker({ exam, onSubmit, onCancel }) {
   const renderQuestionText = (text) => {
     if (text.includes('\n(แปลไทย:')) {
@@ -60,18 +20,20 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
       
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ fontWeight: '500' }}>{english}</div>
+          <div style={{ fontWeight: '500' }}><MarkdownRenderer text={english} /></div>
           <div style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontStyle: 'italic', fontWeight: 'normal', marginTop: '4px' }}>
-            แปลไทย: {thai}
+            แปลไทย: <MarkdownRenderer text={thai} />
           </div>
         </div>
       );
     }
-    return text;
+    return <MarkdownRenderer text={text} />;
   };
 
   const [isStarted, setIsStarted] = useState(false);
   const [shouldShuffle, setShouldShuffle] = useState(false);
+  const [questionLimit, setQuestionLimit] = useState('all');
+  const [selectedTag, setSelectedTag] = useState('all');
   const [currentExam, setCurrentExam] = useState(exam);
 
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -107,14 +69,79 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
     }
   };
 
+  const getQuestionTags = (q) => {
+    if (!q.tags) return [];
+    if (Array.isArray(q.tags)) return q.tags;
+    if (typeof q.tags === 'string') return q.tags.split(',').map(t => t.trim()).filter(Boolean);
+    return [];
+  };
+
+  const uniqueTags = [...new Set(exam.questions.flatMap(q => getQuestionTags(q)))].filter(Boolean);
+
   const handleStartExam = () => {
-    let finalExam = exam;
-    if (shouldShuffle) {
-      finalExam = prepareShuffledExam(exam);
+    // 1. Filter by tag
+    let filteredQuestions = [...exam.questions];
+    if (selectedTag !== 'all') {
+      filteredQuestions = filteredQuestions.filter(q => 
+        getQuestionTags(q).includes(selectedTag)
+      );
     }
+
+    // 2. Shuffle if chosen, or shuffle questions only for mini quiz
+    let finalQuestions = [...filteredQuestions];
+    if (shouldShuffle) {
+      finalQuestions = finalQuestions.map(q => {
+        const optionsWithIndices = q.options.map((option, idx) => ({
+          text: option,
+          originalIndex: idx,
+        }));
+        const shuffledOptions = shuffleArray(optionsWithIndices);
+        const newOptions = shuffledOptions.map(o => o.text);
+        
+        let newCorrectAnswer;
+        if (q.type === 'multi-choice') {
+          const origCorrect = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
+          newCorrectAnswer = shuffledOptions
+            .map((item, newIdx) => origCorrect.includes(item.originalIndex) ? newIdx : -1)
+            .filter(idx => idx !== -1)
+            .sort((a, b) => a - b);
+        } else {
+          const origCorrect = q.correctAnswer;
+          newCorrectAnswer = shuffledOptions.findIndex(o => o.originalIndex === origCorrect);
+        }
+
+        return {
+          ...q,
+          options: newOptions,
+          correctAnswer: newCorrectAnswer,
+        };
+      });
+      finalQuestions = shuffleArray(finalQuestions);
+    } else if (questionLimit !== 'all') {
+      // Shuffle question order for random mini-quiz even without shuffling options
+      finalQuestions = shuffleArray(finalQuestions);
+    }
+
+    // 3. Slice to limit
+    if (questionLimit !== 'all') {
+      const limitNum = parseInt(questionLimit);
+      if (finalQuestions.length > limitNum) {
+        finalQuestions = finalQuestions.slice(0, limitNum);
+      }
+    }
+
+    const finalExam = {
+      ...exam,
+      questions: finalQuestions,
+      timeLimit: questionLimit === 'all' 
+        ? exam.timeLimit 
+        : Math.max(2, Math.round((exam.timeLimit * finalQuestions.length) / exam.questions.length))
+    };
+
     setCurrentExam(finalExam);
     setUserAnswers(Array(finalExam.questions.length).fill(null));
     setFlaggedQuestions(Array(finalExam.questions.length).fill(false));
+    setTimeLeft(finalExam.timeLimit * 60);
     setIsStarted(true);
   };
 
@@ -249,7 +276,17 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
             </div>
           </div>
 
-          <div className="ready-options" style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px', textAlign: 'left', background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <div className="ready-options" style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '15px', 
+            marginBottom: '30px', 
+            textAlign: 'left', 
+            background: 'rgba(99, 102, 241, 0.03)', 
+            padding: '20px', 
+            borderRadius: '12px', 
+            border: '1px solid rgba(99, 102, 241, 0.12)' 
+          }}>
             <label className="flex-row cursor-pointer" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
               <input
                 type="checkbox"
@@ -275,6 +312,59 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>แสดงเฉลยและคำอธิบายเป็นรายข้อทันทีที่เลือกตอบ</span>
               </div>
             </label>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+              <label htmlFor="mini-quiz-select" style={{ fontWeight: '600', fontSize: '14.5px', color: 'var(--text-main)' }}>
+                ⏱️ จำกัดจำนวนข้อสอบ (Mini Quiz)
+              </label>
+              <select
+                id="mini-quiz-select"
+                value={questionLimit}
+                onChange={(e) => setQuestionLimit(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '8px',
+                  color: 'var(--text-main)',
+                  fontSize: '13.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">ทำทั้งหมด ({exam.questions.length} ข้อ)</option>
+                {exam.questions.length > 10 && <option value="10">ทำข้อสอบ 10 ข้อ</option>}
+                {exam.questions.length > 20 && <option value="20">ทำข้อสอบ 20 ข้อ</option>}
+                {exam.questions.length > 30 && <option value="30">ทำข้อสอบ 30 ข้อ</option>}
+                {exam.questions.length > 50 && <option value="50">ทำข้อสอบ 50 ข้อ</option>}
+              </select>
+            </div>
+
+            {uniqueTags.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                <label htmlFor="tag-select" style={{ fontWeight: '600', fontSize: '14.5px', color: 'var(--text-main)' }}>
+                  🏷️ กรองเฉพาะแท็ก / หัวข้อ (Filter by Tag)
+                </label>
+                <select
+                  id="tag-select"
+                  value={selectedTag}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    color: 'var(--text-main)',
+                    fontSize: '13.5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="all">ทำคำถามทุกแท็ก (ไม่มีการกรอง)</option>
+                  {uniqueTags.map(tag => (
+                    <option key={tag} value={tag}>{tag}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
@@ -415,7 +505,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
                   <span className="option-index">
                     {String.fromCharCode(65 + oIdx)}
                   </span>
-                  <span>{opt}</span>
+                  <span><MarkdownRenderer text={opt} /></span>
                 </button>
               );
             })}
@@ -451,7 +541,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
                 })()}
               </div>
               <div className="explanation-content">
-                {currentQuestion.explanation || 'ไม่ได้ระบุคำอธิบายคำตอบ'}
+                {currentQuestion.explanation ? <MarkdownRenderer text={currentQuestion.explanation} /> : 'ไม่ได้ระบุคำอธิบายคำตอบ'}
               </div>
               
               <button 
