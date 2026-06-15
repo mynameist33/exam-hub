@@ -3,6 +3,8 @@ import { useState } from 'react';
 export default function Dashboard({ 
   exams, 
   history, 
+  srs = [],
+  onStartSrsReview,
   onStartExam, 
   onEditExam, 
   onDeleteExam, 
@@ -14,6 +16,8 @@ export default function Dashboard({
 }) {
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [activeTab, setActiveTab] = useState('exams'); // 'exams' | 'analytics'
+  const [now] = useState(() => Date.now());
+  const dueSrsCount = srs ? srs.filter(card => card.nextReview <= now).length : 0;
 
   const totalExams = exams.filter(Boolean).length;
 
@@ -62,6 +66,37 @@ export default function Dashboard({
         <h3 style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px', marginBottom: '15px' }}>
           {selectedCategory === 'ทั้งหมด' ? 'รายงานภาพรวม' : `รายงาน: ${selectedCategory}`}
         </h3>
+
+        {dueSrsCount > 0 && (
+          <div className="srs-due-card animate-pulse" style={{ 
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15))',
+            border: '1px solid rgba(99, 102, 241, 0.35)',
+            padding: '16px 14px',
+            borderRadius: '12px',
+            marginBottom: '20px',
+            textAlign: 'center',
+            boxShadow: '0 8px 20px rgba(99, 102, 241, 0.1)'
+          }}>
+            <div style={{ fontSize: '24px', marginBottom: '6px' }}>🧠</div>
+            <div style={{ fontWeight: '700', fontSize: '13.5px', marginBottom: '4px', color: 'var(--text-main)' }}>ถึงกำหนดทบทวนความจำ!</div>
+            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: '1.4' }}>
+              มีคำถามที่คุณเคยตอบผิดสะสมอยู่ <strong>{dueSrsCount} ข้อ</strong> ที่พร้อมให้ทบทวนวันนี้
+            </div>
+            <button 
+              className="btn btn-primary" 
+              style={{ 
+                width: '100%', 
+                padding: '9px', 
+                fontSize: '12.5px', 
+                background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                fontWeight: '600'
+              }}
+              onClick={onStartSrsReview}
+            >
+              🚀 เริ่มทบทวนเลย
+            </button>
+          </div>
+        )}
         
         <div className="stat-item">
           <span className="stat-label">จำนวนข้อสอบ</span>
@@ -310,7 +345,7 @@ export default function Dashboard({
           <div className="analytics-container animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '25px', marginTop: '20px' }}>
             {/* Row 1: Key Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-              <div className="glass-panel text-center" style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="glass-panel text-center" style={{ padding: '20px' }}>
                 <span className="stat-label" style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>อัตราสอบผ่าน</span>
                 <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--color-success)', marginTop: '8px' }}>
                   {(() => {
@@ -329,7 +364,7 @@ export default function Dashboard({
                 </span>
               </div>
 
-              <div className="glass-panel text-center" style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="glass-panel text-center" style={{ padding: '20px' }}>
                 <span className="stat-label" style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>เวลาทำข้อสอบเฉลี่ย</span>
                 <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--color-primary-light)', marginTop: '8px' }}>
                   {(() => {
@@ -344,7 +379,7 @@ export default function Dashboard({
                 </span>
               </div>
 
-              <div className="glass-panel text-center" style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="glass-panel text-center" style={{ padding: '20px' }}>
                 <span className="stat-label" style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>ความเร็วในการตอบ</span>
                 <div style={{ fontSize: '32px', fontWeight: '800', color: '#f59e0b', marginTop: '8px' }}>
                   {(() => {
@@ -367,7 +402,7 @@ export default function Dashboard({
             {/* Row 2: Chart Area & Category mastery */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
               {/* SVG Trend Chart */}
-              <div className="glass-panel" style={{ padding: '20px', minHeight: '320px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="glass-panel" style={{ padding: '20px', minHeight: '320px' }}>
                 <h3 style={{ fontSize: '16px', marginBottom: '15px', color: 'var(--text-main)' }}>📈 แนวโน้มพัฒนาการคะแนน (10 ครั้งล่าสุด)</h3>
                 {filteredHistory.length === 0 ? (
                   <div style={{ display: 'flex', height: '220px', justifyContent: 'center', alignItems: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
@@ -444,7 +479,7 @@ export default function Dashboard({
               </div>
 
               {/* Category Mastery */}
-              <div className="glass-panel" style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="glass-panel" style={{ padding: '20px' }}>
                 <h3 style={{ fontSize: '16px', marginBottom: '15px', color: 'var(--text-main)' }}>🏷️ สถิติความเชี่ยวชาญรายหมวดหมู่</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   {uniqueCategoriesOnly.map(cat => {
@@ -460,7 +495,7 @@ export default function Dashboard({
                     const attemptedCount = new Set(catHistory.map(h => h.examId)).size;
 
                     return (
-                      <div key={cat} style={{ background: 'rgba(255,255,255,0.01)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div key={cat} style={{ background: 'rgba(99, 102, 241, 0.04)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(99, 102, 241, 0.08)' }}>
                         <div className="flex-between" style={{ marginBottom: '8px' }}>
                           <span style={{ fontWeight: '600', fontSize: '13.5px', color: 'var(--text-main)' }}>{cat}</span>
                           <span style={{ fontSize: '13px', fontWeight: '700', color: catAvg >= 70 ? 'var(--color-success)' : 'var(--text-muted)' }}>
@@ -490,7 +525,7 @@ export default function Dashboard({
             {/* Row 3: Weak Areas & Smart Tips */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
               {/* Weak Areas */}
-              <div className="glass-panel" style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="glass-panel" style={{ padding: '20px' }}>
                 <h3 style={{ fontSize: '16px', marginBottom: '15px', color: 'var(--text-main)' }}>⚠️ หัวข้อที่ควรทบทวนเพิ่ม (Weak Areas)</h3>
                 {(() => {
                   const weakExams = exams.filter(Boolean).map(exam => {
@@ -540,7 +575,7 @@ export default function Dashboard({
               </div>
 
               {/* Smart Tips */}
-              <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <h3 style={{ fontSize: '16px', marginBottom: '10px', color: 'var(--text-main)' }}>💡 คำแนะนำส่วนบุคคล</h3>
                 <ul style={{ paddingLeft: '18px', fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.7', margin: 0 }}>
                   <li style={{ marginBottom: '8px' }}>
@@ -578,8 +613,7 @@ export default function Dashboard({
                       justifyContent: 'space-between', 
                       alignItems: 'center',
                       flexWrap: 'wrap',
-                      gap: '15px',
-                      background: 'rgba(255, 255, 255, 0.01)'
+                      gap: '15px'
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
