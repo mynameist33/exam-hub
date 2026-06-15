@@ -2,6 +2,7 @@ export const defaultExams = [
   {
     id: "exam-xsoar-official-samples",
     title: "Palo Alto Networks Cortex XSOAR Engineer (PCSAE) Official Practice Exam",
+    category: "Cortex XSOAR",
     description: "แบบทดสอบวัดระดับเตรียมความพร้อมการสอบรับรองวิศวกร XSOAR (PCSAE) ประกอบด้วยโจทย์จริงแนวข้อสอบจาก Palo Alto Networks พร้อมเฉลยคำแปลไทยใต้โจทย์และรองรับคำตอบแบบเลือกหลายข้อ (Multi-Choice)",
     timeLimit: 15,
     passPercentage: 70,
@@ -145,6 +146,7 @@ export const defaultExams = [
   {
     id: "exam-js-basics",
     title: "JavaScript Basics Quiz",
+    category: "JavaScript",
     description: "ทดสอบความรู้พื้นฐานเกี่ยวกับ JavaScript รวมถึงตัวแปร ขอบเขต (Scope) และฟังก์ชัน",
     timeLimit: 10, // 10 minutes
     passPercentage: 70,
@@ -219,6 +221,7 @@ export const defaultExams = [
   {
     id: "exam-general-science",
     title: "วิทยาศาสตร์ทั่วไปและโลกของเรา",
+    category: "Science",
     description: "แบบทดสอบวัดความรู้ทั่วไปด้านวิทยาศาสตร์ ดาราศาสตร์ และปรากฏการณ์ธรรมชาติ",
     timeLimit: 15,
     passPercentage: 60,
