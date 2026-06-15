@@ -9,7 +9,8 @@ export default function Dashboard({
   onCreateNewExam, 
   onOpenImportExport,
   onOpenTextConverter,
-  onReviewAttempt
+  onReviewAttempt,
+  onResetExams
 }) {
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
 
@@ -81,6 +82,13 @@ export default function Dashboard({
         <div className="section-header">
           <h2>คลังข้อสอบของคุณ</h2>
           <div className="nav-actions">
+            <button 
+              className="btn btn-secondary" 
+              style={{ background: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.25)', color: '#fca5a5' }} 
+              onClick={onResetExams}
+            >
+              🔄 รีเซ็ตข้อสอบเริ่มต้น
+            </button>
             <button className="btn btn-secondary" onClick={onOpenTextConverter}>
               📝 แปลงข้อความเป็นข้อสอบ
             </button>
