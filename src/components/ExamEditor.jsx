@@ -32,6 +32,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
   const [qType, setQType] = useState('single-choice');
   const [qCorrect, setQCorrect] = useState(0);
   const [qExplanation, setQExplanation] = useState('');
+  const [qTags, setQTags] = useState('');
   const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
 
   const handleAddOrUpdateQuestion = (e) => {
@@ -50,13 +51,19 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
       return;
     }
 
+    const parsedTags = qTags
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean);
+
     const newQuestion = {
       id: editingQuestionIndex !== null ? questions[editingQuestionIndex].id : `q-${Date.now()}`,
       text: qText,
       type: qType,
       options: [...qOptions],
       correctAnswer: qCorrect,
-      explanation: qExplanation
+      explanation: qExplanation,
+      tags: parsedTags
     };
 
     if (editingQuestionIndex !== null) {
@@ -74,6 +81,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
     setQType('single-choice');
     setQCorrect(0);
     setQExplanation('');
+    setQTags('');
   };
 
   const handleEditQuestionClick = (index) => {
@@ -83,6 +91,11 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
     setQType(q.type || 'single-choice');
     setQCorrect(q.correctAnswer);
     setQExplanation(q.explanation || '');
+    if (q.tags) {
+      setQTags(Array.isArray(q.tags) ? q.tags.join(', ') : q.tags);
+    } else {
+      setQTags('');
+    }
     setEditingQuestionIndex(index);
   };
 
@@ -97,6 +110,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
         setQType('single-choice');
         setQCorrect(0);
         setQExplanation('');
+        setQTags('');
       }
     }
   };
@@ -289,6 +303,17 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
           />
         </div>
 
+        <div className="form-group" style={{ marginBottom: '15px' }}>
+          <label htmlFor="q-tags">แท็กสำหรับข้อนี้ (คั่นด้วยจุลภาค เช่น บทที่ 1, คำนวณ, ยาก)</label>
+          <input
+            id="q-tags"
+            type="text"
+            placeholder="ตัวอย่าง: บทที่ 1, PCSAE, Cortex"
+            value={qTags}
+            onChange={(e) => setQTags(e.target.value)}
+          />
+        </div>
+
         <button type="submit" className="btn btn-outline-primary" style={{ width: '100%' }}>
           {editingQuestionIndex !== null ? 'บันทึกการแก้ไขคำถาม' : 'เพิ่มคำถามลงในชุดข้อสอบ'}
         </button>
@@ -304,7 +329,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
         ) : (
           <div className="creator-q-list">
             {questions.map((q, idx) => (
-              <div key={q.id} className="creator-q-card glass-panel" style={{ background: 'rgba(255, 255, 255, 0.01)' }}>
+              <div key={q.id} className="creator-q-card glass-panel" style={{ background: 'rgba(99, 102, 241, 0.02)' }}>
                 <div className="creator-q-header">
                   <span className="creator-q-index">ข้อที่ {idx + 1}</span>
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -319,6 +344,15 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
                 <div style={{ fontWeight: '500', fontSize: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
                   {renderQuestionText(q.text)}
                 </div>
+                {q.tags && q.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px', marginBottom: '8px' }}>
+                    {q.tags.map(tag => (
+                      <span key={tag} style={{ fontSize: '10px', background: 'rgba(99, 102, 241, 0.15)', color: '#c7d2fe', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                        🏷️ {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', color: 'var(--text-muted)' }}>
                   {q.options.map((opt, oIdx) => {
                     const isCorrect = Array.isArray(q.correctAnswer)
