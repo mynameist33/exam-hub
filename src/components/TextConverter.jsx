@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function TextConverter({ onImport, onCancel }) {
   const [title, setTitle] = useState('ข้อสอบนำเข้าจากข้อความดิบ');
@@ -8,8 +8,6 @@ export default function TextConverter({ onImport, onCancel }) {
   const [passPercentage, setPassPercentage] = useState(70);
   
   const [rawText, setRawText] = useState('');
-  const [parsedQuestions, setParsedQuestions] = useState([]);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const sampleRawText = `1. What is Cortex XSOAR?
 A. Security Orchestration, Automation, and Response
@@ -28,20 +26,19 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
 คำอธิบาย: Playbooks มีหน้าที่จัดลำดับขั้นตอนการตอบสนองต่อภัยคุกคามแบบอัตโนมัติ ช่วยลดภาระของนักวิเคราะห์และลดเวลาในการสืบสวนหาความจริง`;
 
   // Parser Logic
-  const handleParse = (textToParse) => {
+  const parseQuestions = (textToParse) => {
     if (!textToParse.trim()) {
-      setParsedQuestions([]);
-      return;
+      return [];
     }
 
     const lines = textToParse.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const questions = [];
     let currentQuestion = null;
 
-    const questionRegex = /^(\d+[\.\)\-\s]+|Q\d+[:\.\s]+)(.*)/i;
-    const optionRegex = /^([A-G|a-g|ก-จ])[\.\)\-\s\:]+(.*)/;
-    const answerRegex = /^(Answer|เฉลย|Ans|คำตอบ|เฉลยข้อ)[\s\:\-=]+([A-G|a-g|ก-จ|1-7]|\d)/i;
-    const explanationRegex = /^(Explanation|คำอธิบาย|เฉลยละเอียด|เหตุผล|คำแปล)[\s\:\-=]+(.*)/i;
+    const questionRegex = /^(\d+[.)\-\s]+|Q\d+[:.\s]+)(.*)/i;
+    const optionRegex = /^([A-Ga-gก-จ])[.)\-\s:]+(.*)/;
+    const answerRegex = /^(Answer|เฉลย|Ans|คำตอบ|เฉลยข้อ)[\s:\-=]+([A-Ga-gก-จ1-7]|\d)/i;
+    const explanationRegex = /^(Explanation|คำอธิบาย|เฉลยละเอียด|เหตุผล|คำแปล)[\s:\-=]+(.*)/i;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -53,7 +50,7 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
           questions.push(currentQuestion);
         }
         currentQuestion = {
-          id: `q-parsed-${Date.now()}-${questions.length}`,
+          id: `q-parsed-${questions.length}`,
           text: qMatch[2].trim(),
           type: 'single-choice',
           options: [],
@@ -74,7 +71,7 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
       const ansMatch = line.match(answerRegex);
       if (ansMatch && currentQuestion) {
         const ansPart = line.split(/Answer|เฉลย|Ans|คำตอบ|เฉลยข้อ/i)[1] || '';
-        const chars = ansPart.match(/[A-G|a-g|ก-จ|1-7]/g);
+        const chars = ansPart.match(/[A-Ga-gก-จ1-7]/g);
         
         if (chars && chars.length > 1) {
           const indices = chars.map(char => {
@@ -127,13 +124,10 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
       questions.push(currentQuestion);
     }
 
-    setParsedQuestions(questions);
+    return questions;
   };
 
-  // Run parser on text change
-  useEffect(() => {
-    handleParse(rawText);
-  }, [rawText]);
+  const parsedQuestions = parseQuestions(rawText);
 
   const handleLoadSample = () => {
     setRawText(sampleRawText);
@@ -157,7 +151,6 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
     }
 
     const examData = {
-      id: `exam-parsed-${Date.now()}`,
       title,
       category: category.trim() || 'ทั่วไป',
       description,
@@ -183,7 +176,7 @@ D. ใช้ในการจำกัดสิทธิ์ผู้ใช้�
       </div>
 
       {/* Meta configuration */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }} className="glass-panel" style={{ padding: '20px', background: 'rgba(0,0,0,0.1)' }}>
+      <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px', padding: '20px', background: 'rgba(0,0,0,0.1)' }}>
         <div className="form-row">
           <div className="form-group" style={{ flex: 1.5 }}>
             <label htmlFor="conv-title">ชื่อข้อสอบ / วิชา</label>

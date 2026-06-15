@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function ExamEditor({ exam, onSave, onCancel }) {
   const renderQuestionText = (text) => {
@@ -19,12 +19,12 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
     return text;
   };
 
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
-  const [timeLimit, setTimeLimit] = useState(15);
-  const [passPercentage, setPassPercentage] = useState(60);
-  const [questions, setQuestions] = useState([]);
+  const [title, setTitle] = useState(() => exam ? exam.title : '');
+  const [category, setCategory] = useState(() => exam ? exam.category || '' : '');
+  const [description, setDescription] = useState(() => exam ? exam.description : '');
+  const [timeLimit, setTimeLimit] = useState(() => exam ? exam.timeLimit : 15);
+  const [passPercentage, setPassPercentage] = useState(() => exam ? exam.passPercentage : 60);
+  const [questions, setQuestions] = useState(() => exam ? exam.questions : []);
   
   // State for current question being created/edited
   const [qText, setQText] = useState('');
@@ -33,25 +33,6 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
   const [qCorrect, setQCorrect] = useState(0);
   const [qExplanation, setQExplanation] = useState('');
   const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
-
-  useEffect(() => {
-    if (exam) {
-      setTitle(exam.title);
-      setCategory(exam.category || '');
-      setDescription(exam.description);
-      setTimeLimit(exam.timeLimit);
-      setPassPercentage(exam.passPercentage);
-      setQuestions(exam.questions);
-    } else {
-      // Clear forms for new exam
-      setTitle('');
-      setCategory('');
-      setDescription('');
-      setTimeLimit(15);
-      setPassPercentage(60);
-      setQuestions([]);
-    }
-  }, [exam]);
 
   const handleAddOrUpdateQuestion = (e) => {
     e.preventDefault();
@@ -339,13 +320,18 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
                   {renderQuestionText(q.text)}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  {q.options.map((opt, oIdx) => (
-                    <div key={oIdx} style={{ display: 'flex', gap: '5px', color: q.correctAnswer === oIdx ? '#86efac' : 'inherit', fontWeight: q.correctAnswer === oIdx ? '600' : 'normal' }}>
-                      <span>{String.fromCharCode(65 + oIdx)}.</span>
-                      <span>{opt}</span>
-                      {q.correctAnswer === oIdx && <span>✓</span>}
-                    </div>
-                  ))}
+                  {q.options.map((opt, oIdx) => {
+                    const isCorrect = Array.isArray(q.correctAnswer)
+                      ? q.correctAnswer.includes(oIdx)
+                      : q.correctAnswer === oIdx;
+                    return (
+                      <div key={oIdx} style={{ display: 'flex', gap: '5px', color: isCorrect ? '#86efac' : 'inherit', fontWeight: isCorrect ? '600' : 'normal' }}>
+                        <span>{String.fromCharCode(65 + oIdx)}.</span>
+                        <span>{opt}</span>
+                        {isCorrect && <span>✓</span>}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}

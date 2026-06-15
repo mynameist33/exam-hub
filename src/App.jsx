@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { defaultExams } from './utils/defaultExams';
 import Dashboard from './components/Dashboard';
 import ExamTaker from './components/ExamTaker';
@@ -6,17 +6,11 @@ import ExamEditor from './components/ExamEditor';
 import ExamResults from './components/ExamResults';
 import ImportExport from './components/ImportExport';
 import TextConverter from './components/TextConverter';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const [page, setPage] = useState('dashboard'); // 'dashboard' | 'taker' | 'editor' | 'results'
-  const [exams, setExams] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [activeExam, setActiveExam] = useState(null);
-  const [activeResult, setActiveResult] = useState(null);
-  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
-
-  // Initialize and load data from LocalStorage
-  useEffect(() => {
+  const [exams, setExams] = useState(() => {
     try {
       const storedExams = localStorage.getItem('xamprep_exams');
       if (storedExams && storedExams !== 'null') {
@@ -50,41 +44,40 @@ function App() {
             return exam;
           });
 
-          setExams(updatedExams);
           if (migrated) {
             localStorage.setItem('xamprep_exams', JSON.stringify(updatedExams));
           }
-        } else {
-          setExams(defaultExams);
-          localStorage.setItem('xamprep_exams', JSON.stringify(defaultExams));
+          return updatedExams;
         }
-      } else {
-        // Load sample exams on first load
-        setExams(defaultExams);
-        localStorage.setItem('xamprep_exams', JSON.stringify(defaultExams));
       }
+      // Load sample exams on first load
+      localStorage.setItem('xamprep_exams', JSON.stringify(defaultExams));
+      return defaultExams;
     } catch (e) {
       console.error("Failed to parse exams from LocalStorage:", e);
-      setExams(defaultExams);
+      return defaultExams;
     }
+  });
 
+  const [history, setHistory] = useState(() => {
     try {
       const storedHistory = localStorage.getItem('xamprep_history');
       if (storedHistory && storedHistory !== 'null') {
         const parsedHistory = JSON.parse(storedHistory);
         if (Array.isArray(parsedHistory)) {
-          setHistory(parsedHistory);
-        } else {
-          setHistory([]);
+          return parsedHistory;
         }
-      } else {
-        setHistory([]);
       }
+      return [];
     } catch (e) {
       console.error("Failed to parse history from LocalStorage:", e);
-      setHistory([]);
+      return [];
     }
-  }, []);
+  });
+
+  const [activeExam, setActiveExam] = useState(null);
+  const [activeResult, setActiveResult] = useState(null);
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
 
   // Sync exams to LocalStorage
   const saveExamsToLocalStorage = (updatedExams) => {
@@ -99,8 +92,27 @@ function App() {
   };
 
   // Import Exam Handler
-  const handleImportExam = (newExam) => {
-    const updatedExams = [newExam, ...exams];
+  // Import Exam Handler
+  const handleImportExam = (newExamOrExams) => {
+    const assignIds = (exam, examIdx = 0) => {
+      const importTime = Date.now();
+      return {
+        ...exam,
+        id: exam.id || `exam-imported-${importTime}-${examIdx}`,
+        questions: exam.questions.map((q, qIdx) => ({
+          ...q,
+          id: q.id || `q-imported-${importTime}-${examIdx}-${qIdx}`
+        }))
+      };
+    };
+
+    let updatedExams;
+    if (Array.isArray(newExamOrExams)) {
+      const formatted = newExamOrExams.map((exam, idx) => assignIds(exam, idx));
+      updatedExams = [...formatted, ...exams];
+    } else {
+      updatedExams = [assignIds(newExamOrExams), ...exams];
+    }
     saveExamsToLocalStorage(updatedExams);
   };
 
@@ -242,7 +254,7 @@ function App() {
             </svg>
             ExamHub
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.8</span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600', letterSpacing: '0.02em', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content', cursor: 'default' }}>v0.9</span>
         </div>
         <div className="nav-actions">
           {page !== 'dashboard' && (
@@ -254,7 +266,8 @@ function App() {
       </header>
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <ErrorBoundary>
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {page === 'dashboard' && (
           <Dashboard
             exams={exams}
@@ -290,6 +303,7 @@ function App() {
 
         {page === 'editor' && (
           <ExamEditor
+            key={activeExam?.id || 'new'}
             exam={activeExam}
             onSave={handleSaveExam}
             onCancel={handleBackToDashboard}
@@ -305,6 +319,7 @@ function App() {
           />
         )}
       </main>
+      </ErrorBoundary>
 
       {/* Modals */}
       <ImportExport

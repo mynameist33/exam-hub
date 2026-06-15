@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export default function ExamTaker({ exam, onSubmit, onCancel }) {
   const renderQuestionText = (text) => {
@@ -33,6 +33,59 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
   // Answer state for current question in practice mode
   const [practiceAnswered, setPracticeAnswered] = useState(null); // stores index selected to show explanation
 
+  // Refs to avoid stale closures in timer callback
+  const userAnswersRef = useRef(userAnswers);
+  const timeLeftRef = useRef(timeLeft);
+
+  useEffect(() => {
+    userAnswersRef.current = userAnswers;
+  }, [userAnswers]);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
+  const handleNavigate = (newIdx) => {
+    setCurrentIdx(newIdx);
+    if (isPracticeMode) {
+      setPracticeAnswered(userAnswers[newIdx]);
+    }
+  };
+
+  const submitQuiz = useCallback(() => {
+    clearInterval(timerRef.current);
+    
+    // Calculate score
+    let score = 0;
+    exam.questions.forEach((q, idx) => {
+      const uAns = userAnswersRef.current[idx];
+      if (q.type === 'multi-choice') {
+        const uArr = Array.isArray(uAns) ? uAns : [];
+        const cArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
+        const isCorrect = uArr.length === cArr.length && uArr.every(val => cArr.includes(val));
+        if (isCorrect) score++;
+      } else {
+        if (uAns === q.correctAnswer) {
+          score++;
+        }
+      }
+    });
+
+    const timeSpent = exam.timeLimit * 60 - timeLeftRef.current;
+
+    onSubmit({
+      score,
+      totalQuestions,
+      userAnswers: userAnswersRef.current,
+      timeSpent
+    });
+  }, [exam, onSubmit, totalQuestions]);
+
+  const handleAutoSubmit = useCallback(() => {
+    alert("หมดเวลาทำข้อสอบแล้ว! ระบบจะทำการส่งข้อสอบของคุณโดยอัตโนมัติ");
+    submitQuiz();
+  }, [submitQuiz]);
+
   useEffect(() => {
     // Start countdown timer
     timerRef.current = setInterval(() => {
@@ -47,48 +100,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, []);
-
-  // Sync practice selection when navigating questions
-  useEffect(() => {
-    if (isPracticeMode) {
-      setPracticeAnswered(userAnswers[currentIdx]);
-    }
-  }, [currentIdx, isPracticeMode]);
-
-  const handleAutoSubmit = () => {
-    alert("หมดเวลาทำข้อสอบแล้ว! ระบบจะทำการส่งข้อสอบของคุณโดยอัตโนมัติ");
-    submitQuiz();
-  };
-
-  const submitQuiz = () => {
-    clearInterval(timerRef.current);
-    
-    // Calculate score
-    let score = 0;
-    exam.questions.forEach((q, idx) => {
-      const uAns = userAnswers[idx];
-      if (q.type === 'multi-choice') {
-        const uArr = Array.isArray(uAns) ? uAns : [];
-        const cArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
-        const isCorrect = uArr.length === cArr.length && uArr.every(val => cArr.includes(val));
-        if (isCorrect) score++;
-      } else {
-        if (uAns === q.correctAnswer) {
-          score++;
-        }
-      }
-    });
-
-    const timeSpent = exam.timeLimit * 60 - timeLeft;
-
-    onSubmit({
-      score,
-      totalQuestions,
-      userAnswers,
-      timeSpent
-    });
-  };
+  }, [handleAutoSubmit]);
 
   const handleSubmitClick = () => {
     const unansweredCount = userAnswers.filter(ans => {
@@ -175,7 +187,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
                 <button
                   key={idx}
                   className={btnClass}
-                  onClick={() => setCurrentIdx(idx)}
+                  onClick={() => handleNavigate(idx)}
                 >
                   {idx + 1}
                 </button>
@@ -328,7 +340,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
           <button
             className="btn btn-secondary"
             disabled={currentIdx === 0}
-            onClick={() => setCurrentIdx(prev => prev - 1)}
+            onClick={() => handleNavigate(currentIdx - 1)}
           >
             ← ข้อก่อนหน้า
           </button>
@@ -344,7 +356,7 @@ export default function ExamTaker({ exam, onSubmit, onCancel }) {
             {currentIdx < totalQuestions - 1 ? (
               <button
                 className="btn btn-primary"
-                onClick={() => setCurrentIdx(prev => prev + 1)}
+                onClick={() => handleNavigate(currentIdx + 1)}
               >
                 ข้อถัดไป →
               </button>
