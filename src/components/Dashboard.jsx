@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function Dashboard({ 
   exams, 
@@ -14,6 +14,8 @@ export default function Dashboard({
 }) {
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
 
+  const totalExams = exams.filter(Boolean).length;
+
   // Extract unique categories dynamically, filtering out null/undefined exams
   const categories = ['ทั้งหมด', ...new Set(exams.filter(Boolean).map(e => e.category || 'ทั่วไป'))];
 
@@ -24,13 +26,13 @@ export default function Dashboard({
 
   // Calculate Stats dynamically based on selected category safely
   const filteredHistory = selectedCategory === 'ทั้งหมด'
-    ? history
-    : history.filter(h => {
+    ? history.filter(Boolean)
+    : history.filter(Boolean).filter(h => {
         const exam = exams.find(e => e && e.id === h.examId);
         return exam && (exam.category || 'ทั่วไป') === selectedCategory;
       });
 
-  const totalExamsDisplay = selectedCategory === 'ทั้งหมด' ? exams.filter(Boolean).length : filteredExams.length;
+  const totalExamsDisplay = selectedCategory === 'ทั้งหมด' ? totalExams : filteredExams.length;
   const examsTakenDisplay = filteredHistory.length;
   
   const averageScoreDisplay = examsTakenDisplay > 0 
@@ -45,10 +47,10 @@ export default function Dashboard({
 
   // Helper to find highest score for a specific exam
   const getExamHighScore = (examId) => {
-    const examAttempts = history.filter(h => h.examId === examId);
+    const examAttempts = history.filter(Boolean).filter(h => h.examId === examId);
     if (examAttempts.length === 0) return null;
     
-    const maxPercent = Math.max(...examAttempts.map(h => Math.round((h.score / h.totalQuestions) * 100)));
+    const maxPercent = Math.max(...examAttempts.map(h => Math.round(h.totalQuestions > 0 ? (h.score / h.totalQuestions) * 100 : 0)));
     return maxPercent;
   };
 
@@ -87,8 +89,7 @@ export default function Dashboard({
               วิเคราะห์รายหมวดหมู่
             </h4>
             {uniqueCategoriesOnly.map(cat => {
-              const catExams = exams.filter(e => e && (e.category || 'ทั่วไป') === cat);
-              const catHistory = history.filter(h => {
+              const catHistory = history.filter(Boolean).filter(h => {
                 const exam = exams.find(e => e && e.id === h.examId);
                 return exam && (exam.category || 'ทั่วไป') === cat;
               });
@@ -266,13 +267,13 @@ export default function Dashboard({
         )}
 
         {/* Past Attempts History Section */}
-        {history.length > 0 && (
+        {history.filter(Boolean).length > 0 && (
           <div className="history-section" style={{ marginTop: '40px' }}>
             <h2 style={{ marginBottom: '20px' }}>ประวัติการทำข้อสอบล่าสุด</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {history.map((attempt) => {
-                const exam = exams.find(e => e.id === attempt.examId);
-                const percentage = Math.round((attempt.score / attempt.totalQuestions) * 100);
+              {history.filter(Boolean).map((attempt) => {
+                const exam = exams.find(e => e && e.id === attempt.examId);
+                const percentage = attempt.totalQuestions > 0 ? Math.round((attempt.score / attempt.totalQuestions) * 100) : 0;
                 const isPassed = exam ? percentage >= exam.passPercentage : false;
 
                 return (
