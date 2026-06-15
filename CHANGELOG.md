@@ -4,6 +4,12 @@ All notable changes to the **ExamHub** application will be documented in this fi
 
 ---
 
+## [v0.8.0] - 2026-06-15
+### Fixed
+- **Corrupt LocalStorage Crash Protection**: Wrapped all LocalStorage operations (`getItem`, `JSON.parse`) in robust try-catch blocks and explicit array validation (`Array.isArray`) to handle corrupt database states (like `"null"` strings or invalid formats) without crashing the application.
+
+---
+
 ## [v0.7.0] - 2026-06-15
 ### Fixed
 - **Blank Page rendering error**: Fixed a critical crash where the React application rendered a blank screen on load. The error was caused by `exam.title` being undefined for custom or corrupted local exams during the migration check (`exam.title.toLowerCase()`). Resolved by adding safe fallback operators `(exam.title || '').toLowerCase()`.
