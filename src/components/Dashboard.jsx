@@ -14,34 +14,34 @@ export default function Dashboard({
 }) {
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
 
-  // Extract unique categories dynamically
-  const categories = ['ทั้งหมด', ...new Set(exams.map(e => e.category || 'ทั่วไป'))];
+  // Extract unique categories dynamically, filtering out null/undefined exams
+  const categories = ['ทั้งหมด', ...new Set(exams.filter(Boolean).map(e => e.category || 'ทั่วไป'))];
 
-  // Filter exams based on selected category
+  // Filter exams based on selected category safely
   const filteredExams = selectedCategory === 'ทั้งหมด'
-    ? exams
-    : exams.filter(e => (e.category || 'ทั่วไป') === selectedCategory);
+    ? exams.filter(Boolean)
+    : exams.filter(e => e && (e.category || 'ทั่วไป') === selectedCategory);
 
-  // Calculate Stats dynamically based on selected category
+  // Calculate Stats dynamically based on selected category safely
   const filteredHistory = selectedCategory === 'ทั้งหมด'
     ? history
     : history.filter(h => {
-        const exam = exams.find(e => e.id === h.examId);
+        const exam = exams.find(e => e && e.id === h.examId);
         return exam && (exam.category || 'ทั่วไป') === selectedCategory;
       });
 
-  const totalExamsDisplay = selectedCategory === 'ทั้งหมด' ? exams.length : filteredExams.length;
+  const totalExamsDisplay = selectedCategory === 'ทั้งหมด' ? exams.filter(Boolean).length : filteredExams.length;
   const examsTakenDisplay = filteredHistory.length;
   
   const averageScoreDisplay = examsTakenDisplay > 0 
-    ? Math.round(filteredHistory.reduce((sum, h) => sum + (h.score / h.totalQuestions) * 100, 0) / examsTakenDisplay)
+    ? Math.round(filteredHistory.reduce((sum, h) => sum + (h.totalQuestions > 0 ? (h.score / h.totalQuestions) * 100 : 0), 0) / examsTakenDisplay)
     : 0;
 
-  const totalTimeSpentSecondsDisplay = filteredHistory.reduce((sum, h) => sum + h.timeSpent, 0);
+  const totalTimeSpentSecondsDisplay = filteredHistory.reduce((sum, h) => sum + (h.timeSpent || 0), 0);
   const totalTimeMinutesDisplay = Math.round(totalTimeSpentSecondsDisplay / 60);
 
   // Extract unique categories (excluding 'ทั้งหมด') for breakdown list
-  const uniqueCategoriesOnly = [...new Set(exams.map(e => e.category || 'ทั่วไป'))];
+  const uniqueCategoriesOnly = [...new Set(exams.filter(Boolean).map(e => e.category || 'ทั่วไป'))];
 
   // Helper to find highest score for a specific exam
   const getExamHighScore = (examId) => {
@@ -87,13 +87,13 @@ export default function Dashboard({
               วิเคราะห์รายหมวดหมู่
             </h4>
             {uniqueCategoriesOnly.map(cat => {
-              const catExams = exams.filter(e => (e.category || 'ทั่วไป') === cat);
+              const catExams = exams.filter(e => e && (e.category || 'ทั่วไป') === cat);
               const catHistory = history.filter(h => {
-                const exam = exams.find(e => e.id === h.examId);
+                const exam = exams.find(e => e && e.id === h.examId);
                 return exam && (exam.category || 'ทั่วไป') === cat;
               });
               const catAvg = catHistory.length > 0
-                ? Math.round(catHistory.reduce((sum, h) => sum + (h.score / h.totalQuestions) * 100, 0) / catHistory.length)
+                ? Math.round(catHistory.reduce((sum, h) => sum + (h.totalQuestions > 0 ? (h.score / h.totalQuestions) * 100 : 0), 0) / catHistory.length)
                 : 0;
               const isCatActive = selectedCategory === cat;
 
