@@ -4,6 +4,31 @@ All notable changes to the **ExamHub** application will be documented in this fi
 
 ---
 
+## [v0.8.0] - 2026-06-15
+### Fixed
+- **Undeclared totalExams Reference Error**: Fixed a critical runtime crash caused by referencing the undeclared `totalExams` variable in `Dashboard.jsx`, which resulted in a blank page on load.
+- **Robust History Null Checks**: Added safety checks in `Dashboard.jsx` stats, category breakdown, and attempt lists by filtering history arrays to exclude null/undefined entries and safeguarding against division-by-zero.
+- **Corrupt LocalStorage Crash Protection**: Wrapped all LocalStorage operations (`getItem`, `JSON.parse`) in robust try-catch blocks and explicit array validation (`Array.isArray`) to handle corrupt database states (like `"null"` strings or invalid formats) without crashing the application.
+
+---
+
+## [v0.7.0] - 2026-06-15
+### Fixed
+- **Blank Page rendering error**: Fixed a critical crash where the React application rendered a blank screen on load. The error was caused by `exam.title` being undefined for custom or corrupted local exams during the migration check (`exam.title.toLowerCase()`). Resolved by adding safe fallback operators `(exam.title || '').toLowerCase()`.
+- **LocalStorage Data Safety**: Enhanced database safety in both `App.jsx` and `Dashboard.jsx` by filtering out null or undefined exams and safeguarding against division by zero in average score calculations (`totalQuestions > 0` checks).
+
+---
+
+## [v0.6.0] - 2026-06-15
+### Added
+- **Dynamic Category Stats Dashboard**: Updated the Sidebar Progress Panel to reflect statistics (Total exams, Taken, Average score, Practice time) dynamically according to the selected category.
+- **Category Breakdown Section**: Rendered an interactive list of all categories in the Sidebar showing their respective total exams and average score, with clicking capability to filter the dashboard grid.
+
+### Fixed
+- **Category Breakdown Row Hover Styling**: Added CSS styles in `index.css` for category list rows to render glassmorphism hover and active effects.
+
+---
+
 ## [v0.5.0] - 2026-06-15
 ### Added
 - **Exam Categorization**: Added a `category` property to exams allowing categorization of quizzes (e.g., "Cortex XSOAR", "JavaScript", "Science").

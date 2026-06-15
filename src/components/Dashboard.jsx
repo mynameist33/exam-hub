@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function Dashboard({ 
   exams, 
@@ -14,31 +14,43 @@ export default function Dashboard({
 }) {
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
 
-  // Extract unique categories dynamically
-  const categories = ['ทั้งหมด', ...new Set(exams.map(e => e.category || 'ทั่วไป'))];
+  const totalExams = exams.filter(Boolean).length;
 
-  // Filter exams based on selected category
+  // Extract unique categories dynamically, filtering out null/undefined exams
+  const categories = ['ทั้งหมด', ...new Set(exams.filter(Boolean).map(e => e.category || 'ทั่วไป'))];
+
+  // Filter exams based on selected category safely
   const filteredExams = selectedCategory === 'ทั้งหมด'
-    ? exams
-    : exams.filter(e => (e.category || 'ทั่วไป') === selectedCategory);
+    ? exams.filter(Boolean)
+    : exams.filter(e => e && (e.category || 'ทั่วไป') === selectedCategory);
 
-  // Calculate Stats
-  const totalExams = exams.length;
-  const examsTaken = history.length;
+  // Calculate Stats dynamically based on selected category safely
+  const filteredHistory = selectedCategory === 'ทั้งหมด'
+    ? history.filter(Boolean)
+    : history.filter(Boolean).filter(h => {
+        const exam = exams.find(e => e && e.id === h.examId);
+        return exam && (exam.category || 'ทั่วไป') === selectedCategory;
+      });
+
+  const totalExamsDisplay = selectedCategory === 'ทั้งหมด' ? totalExams : filteredExams.length;
+  const examsTakenDisplay = filteredHistory.length;
   
-  const averageScore = examsTaken > 0 
-    ? Math.round(history.reduce((sum, h) => sum + (h.score / h.totalQuestions) * 100, 0) / examsTaken)
+  const averageScoreDisplay = examsTakenDisplay > 0 
+    ? Math.round(filteredHistory.reduce((sum, h) => sum + (h.totalQuestions > 0 ? (h.score / h.totalQuestions) * 100 : 0), 0) / examsTakenDisplay)
     : 0;
 
-  const totalTimeSpentSeconds = history.reduce((sum, h) => sum + h.timeSpent, 0);
-  const totalTimeMinutes = Math.round(totalTimeSpentSeconds / 60);
+  const totalTimeSpentSecondsDisplay = filteredHistory.reduce((sum, h) => sum + (h.timeSpent || 0), 0);
+  const totalTimeMinutesDisplay = Math.round(totalTimeSpentSecondsDisplay / 60);
+
+  // Extract unique categories (excluding 'ทั้งหมด') for breakdown list
+  const uniqueCategoriesOnly = [...new Set(exams.filter(Boolean).map(e => e.category || 'ทั่วไป'))];
 
   // Helper to find highest score for a specific exam
   const getExamHighScore = (examId) => {
-    const examAttempts = history.filter(h => h.examId === examId);
+    const examAttempts = history.filter(Boolean).filter(h => h.examId === examId);
     if (examAttempts.length === 0) return null;
     
-    const maxPercent = Math.max(...examAttempts.map(h => Math.round((h.score / h.totalQuestions) * 100)));
+    const maxPercent = Math.max(...examAttempts.map(h => Math.round(h.totalQuestions > 0 ? (h.score / h.totalQuestions) * 100 : 0)));
     return maxPercent;
   };
 
@@ -46,33 +58,79 @@ export default function Dashboard({
     <div className="dashboard-grid animate-fade">
       {/* Sidebar Stats Panel */}
       <div className="stats-sidebar glass-panel">
-        <h3 style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px', marginBottom: '5px' }}>
-          แผงรายงานความคืบหน้า
+        <h3 style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px', marginBottom: '15px' }}>
+          {selectedCategory === 'ทั้งหมด' ? 'รายงานภาพรวม' : `รายงาน: ${selectedCategory}`}
         </h3>
         
         <div className="stat-item">
-          <span className="stat-label">ข้อสอบทั้งหมด</span>
-          <span className="stat-value">{totalExams} ชุด</span>
+          <span className="stat-label">จำนวนข้อสอบ</span>
+          <span className="stat-value">{totalExamsDisplay} ชุด</span>
         </div>
 
         <div className="stat-item">
-          <span className="stat-label">ทำข้อสอบสำเร็จแล้ว</span>
-          <span className="stat-value">{examsTaken} ครั้ง</span>
+          <span className="stat-label">ทำสำเร็จแล้ว</span>
+          <span className="stat-value">{examsTakenDisplay} ครั้ง</span>
         </div>
 
         <div className="stat-item">
-          <span className="stat-label">คะแนนเฉลี่ยรวม</span>
-          <span className="stat-value highlight">{averageScore}%</span>
+          <span className="stat-label">คะแนนเฉลี่ย</span>
+          <span className="stat-value highlight">{averageScoreDisplay}%</span>
         </div>
 
         <div className="stat-item">
-          <span className="stat-label">เวลาฝึกซ้อมรวม</span>
-          <span className="stat-value">{totalTimeMinutes} นาที</span>
+          <span className="stat-label">เวลาฝึกซ้อม</span>
+          <span className="stat-value">{totalTimeMinutesDisplay} นาที</span>
         </div>
+
+        {/* Category breakdown visual list */}
+        {exams.length > 0 && (
+          <div className="category-breakdown-section" style={{ marginTop: '25px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '15px' }}>
+            <h4 style={{ fontSize: '13px', marginBottom: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              วิเคราะห์รายหมวดหมู่
+            </h4>
+            {uniqueCategoriesOnly.map(cat => {
+              const catHistory = history.filter(Boolean).filter(h => {
+                const exam = exams.find(e => e && e.id === h.examId);
+                return exam && (exam.category || 'ทั่วไป') === cat;
+              });
+              const catAvg = catHistory.length > 0
+                ? Math.round(catHistory.reduce((sum, h) => sum + (h.totalQuestions > 0 ? (h.score / h.totalQuestions) * 100 : 0), 0) / catHistory.length)
+                : 0;
+              const isCatActive = selectedCategory === cat;
+
+              return (
+                <div 
+                  key={cat} 
+                  className={`category-stat-row ${isCatActive ? 'active-row' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    fontSize: '12.5px', 
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    marginBottom: '6px',
+                    cursor: 'pointer',
+                    background: isCatActive ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                    border: isCatActive ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid transparent',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title={`คลิกเพื่อกรองหมวดหมู่ ${cat}`}
+                >
+                  <span style={{ fontWeight: '500', color: isCatActive ? 'var(--text-main)' : 'var(--text-muted)' }}>🏷️ {cat}</span>
+                  <span style={{ fontWeight: '600', color: catHistory.length > 0 ? 'var(--color-success)' : 'var(--text-muted)' }}>
+                    {catHistory.length > 0 ? `${catAvg}%` : 'ไม่มีข้อมูล'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {history.length > 0 && (
-          <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)' }}>
-            สถิติได้รับการอัปเดตแบบเรียลไทม์ผ่าน LocalStorage
+          <div style={{ marginTop: '15px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+            สถิติอ้างอิงตามฐานข้อมูล LocalStorage
           </div>
         )}
       </div>
@@ -209,13 +267,13 @@ export default function Dashboard({
         )}
 
         {/* Past Attempts History Section */}
-        {history.length > 0 && (
+        {history.filter(Boolean).length > 0 && (
           <div className="history-section" style={{ marginTop: '40px' }}>
             <h2 style={{ marginBottom: '20px' }}>ประวัติการทำข้อสอบล่าสุด</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {history.map((attempt) => {
-                const exam = exams.find(e => e.id === attempt.examId);
-                const percentage = Math.round((attempt.score / attempt.totalQuestions) * 100);
+              {history.filter(Boolean).map((attempt) => {
+                const exam = exams.find(e => e && e.id === attempt.examId);
+                const percentage = attempt.totalQuestions > 0 ? Math.round((attempt.score / attempt.totalQuestions) * 100) : 0;
                 const isPassed = exam ? percentage >= exam.passPercentage : false;
 
                 return (
