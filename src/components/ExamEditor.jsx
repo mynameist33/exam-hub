@@ -20,6 +20,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
   };
 
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [timeLimit, setTimeLimit] = useState(15);
   const [passPercentage, setPassPercentage] = useState(60);
@@ -36,6 +37,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
   useEffect(() => {
     if (exam) {
       setTitle(exam.title);
+      setCategory(exam.category || '');
       setDescription(exam.description);
       setTimeLimit(exam.timeLimit);
       setPassPercentage(exam.passPercentage);
@@ -43,6 +45,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
     } else {
       // Clear forms for new exam
       setTitle('');
+      setCategory('');
       setDescription('');
       setTimeLimit(15);
       setPassPercentage(60);
@@ -136,6 +139,7 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
     const savedExam = {
       id: exam ? exam.id : `exam-${Date.now()}`,
       title,
+      category: category.trim() || 'ทั่วไป',
       description,
       timeLimit: parseInt(timeLimit) || 15,
       passPercentage: parseInt(passPercentage) || 60,
@@ -161,6 +165,17 @@ export default function ExamEditor({ exam, onSave, onCancel }) {
             placeholder="ตัวอย่าง: ข้อสอบไวยากรณ์ภาษาอังกฤษม.ปลาย"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="exam-category">หมวดหมู่ / เรื่อง (เช่น Cortex XSOAR, JavaScript, Science)</label>
+          <input
+            id="exam-category"
+            type="text"
+            placeholder="ตัวอย่าง: JavaScript"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
           />
         </div>
 
