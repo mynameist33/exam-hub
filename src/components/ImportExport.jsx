@@ -8,6 +8,7 @@ export default function ImportExport({ isOpen, onClose, onImport, exams }) {
 
   const sampleJSON = {
     title: "ภาษาไทยเบื้องต้น",
+    category: "ภาษาไทย",
     description: "ทดสอบความรู้ภาษาไทยพื้นฐานเกี่ยวกับคำราชาศัพท์และการใช้คำภาษาต่างประเทศ",
     timeLimit: 15,
     passPercentage: 60,
@@ -64,6 +65,7 @@ export default function ImportExport({ isOpen, onClose, onImport, exams }) {
       const newExam = {
         id: `exam-imported-${Date.now()}`,
         title: parsed.title,
+        category: parsed.category || 'ทั่วไป',
         description: parsed.description || 'นำเข้าข้อสอบด้วยไฟล์ข้อความ',
         timeLimit: parseInt(parsed.timeLimit) || 10,
         passPercentage: parseInt(parsed.passPercentage) || 60,
@@ -94,8 +96,9 @@ export default function ImportExport({ isOpen, onClose, onImport, exams }) {
   // Export current exams
   const handleExportExams = () => {
     // Simplify for export - remove the unique IDs so they are cleaner to share
-    const exportable = exams.map(({ title, description, timeLimit, passPercentage, questions }) => ({
+    const exportable = exams.map(({ title, category, description, timeLimit, passPercentage, questions }) => ({
       title,
+      category: category || 'ทั่วไป',
       description,
       timeLimit,
       passPercentage,
